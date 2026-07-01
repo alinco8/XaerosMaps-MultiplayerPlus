@@ -25,9 +25,9 @@ Like the mod? You can support its development by getting a server through the ba
 
 You can also check out my other mod!
 
-|                                                                                                                                                                               |                          |
-|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------|
-| [![Xaero's Maps x Waytones](https://raw.githubusercontent.com/alinco8/XaerosMaps-x-Waystones/refs/heads/main/src/main/resources/icon.png)](https://modrinth.com/mod/iv2jCzkP) | Xaero's Maps x Waystones |
+|                                                                                                                                          |                                                               |                                                              |
+|------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------|--------------------------------------------------------------|
+| ![Xaero's Maps x Waytones](https://raw.githubusercontent.com/alinco8/XaerosMaps-x-Waystones/refs/heads/main/src/main/resources/icon.png) | [Xaero's Maps x Waystones](https://modrinth.com/mod/iv2jCzkP) | Lets you see Waystone locations on Xaero’s Minimap/World Map |
 
 # 🗺️ Overview
 
