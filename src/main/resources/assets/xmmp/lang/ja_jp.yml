@@ -1,0 +1,28 @@
+xmmp:
+  config:
+    title: "Xaero's Maps: Multiplayer+ 設定"
+    categories:
+      general:
+        name: "一般"
+        options:
+          chunkSendLimit:
+            name: "チャンク送信数の上限/tick"
+            description: "1tickあたりに送信するチャンク数の上限。"
+          chunkApplyLimit:
+            name: "チャンク適用数の上限/tick"
+            description: "1tickあたりに適用するチャンク数の上限。"
+          maxRetries:
+            name: "最大リトライ回数"
+            description: "チャンクの送受信に失敗した際のリトライ回数の上限。"
+          maxPendingSyncChunks:
+            name: "最大保留同期チャンク数"
+            description: "同期中の保留チャンクリクエストの上限。"
+          flushInterval:
+            name: "Flush Interval"
+            description: "不要なデータをクリーンアップする間隔（ミリ秒単位）"
+          maxChunkUploadsPerSecond:
+            name: "最大チャンクアップロード数/秒"
+            description: "1秒あたりにサーバーが受け入れるチャンクアップロードの最大数。"
+          maxChunkRowRequestsPerSecond:
+            name: "Max Chunk Row Requests per Second"
+            description: "Maximum number of chunk row requests the server accepts from a single player per second"

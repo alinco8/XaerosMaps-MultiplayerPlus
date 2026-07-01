@@ -1,0 +1,91 @@
+#!/usr/bin/env bash
+# Requires: git, git-cliff, gh, gradle, tomato
+set -Eeuo pipefail
+
+fatal() {
+  echo "fatal: $*" >&2
+  exit 1
+}
+
+info() {
+  echo "info: $*"
+}
+
+confirm() {
+  read -r -p "$1 [y/N] " ans
+  [[ "$ans" == "y" || "$ans" == "Y" ]]
+}
+
+need() {
+  command -v "$1" >/dev/null 2>&1 || fatal "$1 is not installed."
+}
+
+for cmd in git git-cliff gh tomato ./gradlew; do
+  need "$cmd"
+done
+
+[[ -z "$(git status --porcelain)" ]] || {
+  git status --porcelain >&2
+  fatal "Working directory is dirty."
+}
+
+BRANCH="$(git branch --show-current)"
+[[ -n "$BRANCH" ]] || fatal "Detached HEAD is not supported."
+
+git fetch --tags --quiet
+
+CURRENT_VERSION="$(tomato get mod.version stonecutter.properties.toml)"
+NEXT_VERSION="$(git-cliff --unreleased --bumped-version | tr -d '[:space:]')"
+NEXT_VERSION="${NEXT_VERSION#v}"
+
+[[ -n "$NEXT_VERSION" ]] || fatal "git-cliff did not produce a bumped version."
+[[ "$CURRENT_VERSION" != "$NEXT_VERSION" ]] || fatal "No new version detected. Already at $CURRENT_VERSION."
+git rev-parse -q --verify "refs/tags/v$NEXT_VERSION" >/dev/null && fatal "Tag v$NEXT_VERSION already exists."
+
+RELEASE_NOTES="$(git-cliff --unreleased --strip all)"
+[[ -n "$RELEASE_NOTES" ]] || fatal "Release notes are empty."
+
+cat <<EOF
+Release: v$CURRENT_VERSION -> v$NEXT_VERSION
+
+$RELEASE_NOTES
+EOF
+
+confirm "Create and publish this release?" || fatal "Release aborted."
+
+[[ -n "${MODRINTH_TOKEN:-}" ]] || fatal "MODRINTH_TOKEN is not set."
+[[ -n "${CURSEFORGE_TOKEN:-}" ]] || fatal "CURSEFORGE_TOKEN is not set."
+
+committed=false
+
+cleanup() {
+  if [[ "$committed" != "true" ]]; then
+    git restore --source=HEAD --staged --worktree stonecutter.properties.toml >/dev/null 2>&1 || true
+  fi
+}
+trap cleanup ERR INT
+
+tomato set mod.version "$NEXT_VERSION" stonecutter.properties.toml
+
+info "Building..."
+rm -rf build/libs
+CHANGELOG="$RELEASE_NOTES" ./gradlew buildAndCollect --warning-mode all
+
+git add stonecutter.properties.toml
+git commit -m "chore(release): v$NEXT_VERSION"
+git tag "v$NEXT_VERSION"
+committed=true
+
+info "Pushing commit and tag..."
+git push origin "$BRANCH" "v$NEXT_VERSION"
+
+info "Creating GitHub release..."
+gh release create "v$NEXT_VERSION" \
+  --title "v$NEXT_VERSION" \
+  --notes "$RELEASE_NOTES" \
+  build/libs/*
+
+info "Publishing to Modrinth / CurseForge..."
+CHANGELOG="$RELEASE_NOTES" ./gradlew publishMods --warning-mode all
+
+info "Done: v$NEXT_VERSION"

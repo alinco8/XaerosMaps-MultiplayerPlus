@@ -1,0 +1,5 @@
+{
+  "issuePrefixes": [
+    { "value": "closed:", "name": "closed:   ISSUES has been processed" }
+  ]
+}

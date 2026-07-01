@@ -1,0 +1,12 @@
+{
+  "required": true,
+  "package": "dev.alinco8.xmmp.mixin.client",
+  "compatibilityLevel": "JAVA_${deps.java.version}",
+  "client": [],
+  "injectors": {
+    "defaultRequire": 1
+  },
+  "overwrites": {
+    "requireAnnotations": true
+  }
+}

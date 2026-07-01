@@ -1,0 +1,46 @@
+{
+  schemaVersion: 1,
+  id: "${mod.id}",
+  version: "${mod.version}",
+  name: "${mod.name}",
+  description: "${mod.description}",
+  authors: [
+    "${mod.author}"
+  ],
+  license: "${mod.license}",
+  icon: "assets/${mod.id}/icon.png",
+  environment: "*",
+  entrypoints: {
+    main: [
+      {
+        value: "dev.alinco8.xmmp.platform.fabric.FabricEntrypoint",
+        adapter: "kotlin"
+      }
+    ],
+    client: [
+      {
+        value: "dev.alinco8.xmmp.platform.fabric.FabricEntrypointClient",
+        adapter: "kotlin"
+      }
+    ],
+    modmenu: [
+      {
+        value: "dev.alinco8.xmmp.platform.fabric.ModMenuIntegration",
+        adapter: "kotlin"
+      }
+    ]
+  },
+  mixins: [
+    "xmmp.mixins.json"
+  ],
+  depends: {
+    fabricloader: "${deps.fabric_loader.range}",
+    "fabric-language-kotlin": "${deps.fabric_language_kotlin.range}",
+    "fabric-api": "${deps.fabric_api.range}",
+    minecraft: "${deps.minecraft.range}",
+    java: "${deps.java.range}",
+    xaerominimap: "${deps.xaero_minimap.range}",
+    xaeroworldmap: "${deps.xaero_world_map.range}",
+    yet_another_config_lib_v3: "${deps.yacl.range}"
+  }
+}

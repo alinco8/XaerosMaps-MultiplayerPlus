@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration>
+  <Loggers>
+    <Logger additivity="false" level="debug" name="xmmp">
+      <AppenderRef ref="SysOut"/>
+    </Logger>
+  </Loggers>
+</Configuration>

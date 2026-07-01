@@ -1,0 +1,8 @@
+output: true
+
+pre-push:
+  follow: true
+  parallel: false
+  jobs:
+    - run: ./gradlew build
+    - run: ./gradlew publishMods --dry-run
