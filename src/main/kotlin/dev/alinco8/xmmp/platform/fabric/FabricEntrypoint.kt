@@ -1,5 +1,5 @@
 //? if fabric {
-package dev.alinco8.xmmp.platform.fabric
+/*package dev.alinco8.xmmp.platform.fabric
 
 import dev.alinco8.xmmp.XMMP
 import dev.alinco8.xmmp.packet.C2SChunkRowRequestPacket
@@ -59,4 +59,4 @@ class FabricEntrypoint : ModInitializer {
         PayloadTypeRegistry.clientboundPlay().register(type, codec)
     }
 }
-//? }
+*///? }

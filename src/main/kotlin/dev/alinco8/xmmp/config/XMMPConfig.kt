@@ -13,12 +13,12 @@ class XMMPConfig {
                 .id(loc("config"))
                 .serializer { config ->
                     //? if fabric {
-                    val configDir =
-                        net.fabricmc.loader.api.FabricLoader.getInstance().configDir
-                    //? } else if neoforge {
                     /*val configDir =
+                        net.fabricmc.loader.api.FabricLoader.getInstance().configDir
+                    *///? } else if neoforge {
+                    val configDir =
                         net.neoforged.fml.loading.FMLPaths.CONFIGDIR.get()
-                    *///? } else if forge {
+                    //? } else if forge {
                     /*val configDir = net.minecraftforge.fml.loading.FMLPaths.CONFIGDIR.get()
                     *///? }
 

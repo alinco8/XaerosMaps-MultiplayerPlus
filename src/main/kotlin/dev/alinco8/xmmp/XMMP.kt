@@ -30,15 +30,15 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
 //? if <26 {
-/*import net.minecraft.resources.ResourceLocation as Identifier
+import net.minecraft.resources.ResourceLocation as Identifier
 
-*///? } else {
-import net.minecraft.resources.Identifier
+//? } else {
+/*import net.minecraft.resources.Identifier
 
-//? }
+*///? }
 
 internal fun ResourceKey<*>.id() = /*?if <26 {*/
-    /*this.location()*//*?} else {*/ this.identifier() /*?}*/
+    this.location()/*?} else {*/ /*this.identifier() *//*?}*/
 
 internal fun loc(path: String) = Identifier.fromNamespaceAndPath(XMMP.MOD_ID, path)
 

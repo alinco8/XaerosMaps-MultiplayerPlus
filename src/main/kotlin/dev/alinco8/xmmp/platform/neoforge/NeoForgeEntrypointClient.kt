@@ -1,5 +1,5 @@
 //? if neoforge {
-/*package dev.alinco8.xmmp.platform.neoforge
+package dev.alinco8.xmmp.platform.neoforge
 
 import dev.alinco8.xmmp.XMMP
 import dev.alinco8.xmmp.XMMPClient
@@ -33,4 +33,4 @@ class NeoForgeEntrypointClient {
         XMMPClient.onLeaveWorld()
     }
 }
-*///? }
+//? }

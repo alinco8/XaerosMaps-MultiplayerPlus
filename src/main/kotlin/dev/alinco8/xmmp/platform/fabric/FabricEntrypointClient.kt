@@ -1,5 +1,5 @@
 //? if fabric {
-package dev.alinco8.xmmp.platform.fabric
+/*package dev.alinco8.xmmp.platform.fabric
 
 import dev.alinco8.xmmp.XMMPClient
 import dev.alinco8.xmmp.packet.ChunkDataPacket
@@ -30,4 +30,4 @@ class FabricEntrypointClient : ClientModInitializer {
     }
 
 }
-//? }
+*///? }
