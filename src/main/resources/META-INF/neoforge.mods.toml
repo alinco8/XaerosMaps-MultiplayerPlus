@@ -19,36 +19,36 @@ config = "${mod.id}.mixins.json"
 [[dependencies.${ mod.id }]]
 modId = "neoforge"
 type = "required"
-versionRange = "${deps.neoforge.range}"
+versionRange = "${deps.neoforge.range | versionRange}"
 ordering = "NONE"
 side = "BOTH"
 
 [[dependencies.${ mod.id }]]
 modId = "minecraft"
 type = "required"
-versionRange = "${deps.minecraft.range}"
+versionRange = "${deps.minecraft.range | versionRange}"
 ordering = "NONE"
 side = "BOTH"
 
 [[dependencies.${ mod.id }]]
 modId = "kotlinforforge"
 type = "required"
-versionRange = "${deps.kff.range}"
+versionRange = "${deps.kff.range | versionRange}"
 ordering = "NONE"
 side = "BOTH"
 
 [[dependencies.${ mod.id }]]
 modId = "xaeroworldmap"
 type = "required"
-versionRange = "${deps.xaero_world_map.range}"
+versionRange = "${deps.xaero_world_map.range | versionRange}"
 
 [[dependencies.${ mod.id }]]
 modId = "xaerominimap"
 type = "required"
-versionRange = "${deps.xaero_minimap.range}"
+versionRange = "${deps.xaero_minimap.range | versionRange}"
 
 [[dependencies.${ mod.id }]]
 modId = "yet_another_config_lib_v3"
 type = "required"
-versionRange = "${deps.yacl.range}"
+versionRange = "${deps.yacl.range | versionRange}"
 

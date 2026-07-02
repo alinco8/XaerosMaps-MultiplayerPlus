@@ -119,7 +119,7 @@ tasks {
         ) {
 
             filteringCharset = "UTF-8"
-            strictExpand(props, file.path)
+            strictExpand("neoforge", props, file.path)
         }
     }
     named("sourcesJar") {

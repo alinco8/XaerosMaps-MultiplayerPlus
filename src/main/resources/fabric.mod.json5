@@ -34,13 +34,13 @@
     "xmmp.mixins.json"
   ],
   depends: {
-    fabricloader: "${deps.fabric_loader.range}",
-    "fabric-language-kotlin": "${deps.fabric_language_kotlin.range}",
-    "fabric-api": "${deps.fabric_api.range}",
-    minecraft: "${deps.minecraft.range}",
-    java: "${deps.java.range}",
-    xaerominimap: "${deps.xaero_minimap.range}",
-    xaeroworldmap: "${deps.xaero_world_map.range}",
-    yet_another_config_lib_v3: "${deps.yacl.range}"
+    fabricloader: "${deps.fabric_loader.range | versionRange}",
+    "fabric-language-kotlin": "${deps.fabric_language_kotlin.range | versionRange}",
+    "fabric-api": "${deps.fabric_api.range | versionRange}",
+    minecraft: "${deps.minecraft.range | versionRange}",
+    java: "${deps.java.range | versionRange}",
+    xaerominimap: "${deps.xaero_minimap.range | versionRange}",
+    xaeroworldmap: "${deps.xaero_world_map.range | versionRange}",
+    yet_another_config_lib_v3: "${deps.yacl.range | versionRange}"
   }
 }
