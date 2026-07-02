@@ -6,3 +6,12 @@ pre-push:
   jobs:
     - run: ./gradlew build
     - run: ./gradlew publishMods --dry-run
+pre-commit:
+  jobs:
+    - run: |
+        ACTIVE_VERSION=$(cat versions/active.txt)
+        if [[ "$ACTIVE_VERSION" != "1.21.1-neoforge" ]]; then
+          echo "Active version is $ACTIVE_VERSION, expected 1.21.1-neoforge"
+          exit 1
+        fi
+
