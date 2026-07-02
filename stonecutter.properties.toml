@@ -2,7 +2,7 @@ loomx.loom_version = "1.17-SNAPSHOT"
 
 [mod]
 id = "xmmp"
-version = "0.2.0"
+version = "0.2.1"
 license = "MIT"
 name = "Xaero's Maps: Multiplayer+"
 description = "Adds more multiplayer features to Xaero's Minimap/World Map"
