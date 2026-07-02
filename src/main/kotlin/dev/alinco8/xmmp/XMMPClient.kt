@@ -9,9 +9,10 @@ import dev.alinco8.xmmp.sync.ChunkPosQueue
 import dev.alinco8.xmmp.sync.RegionSyncProcessor
 import net.minecraft.client.Minecraft
 import net.minecraft.world.level.ChunkPos
+import xaero.map.core.XaeroWorldMapCore
 
 object XMMPClient {
-    val chunkSendQueue = ChunkPosQueue<Unit>()
+    val chunkSendQueue = ChunkPosQueue<String>()
     val chunkReceiveQueue = ChunkPosQueue<ChunkDataPacket>()
     var elapsedTicks = 0
 
@@ -49,23 +50,19 @@ object XMMPClient {
 
     @JvmStatic
     fun onWriteChunk(chunkX: Int, chunkZ: Int) {
-        chunkSendQueue.add(chunkX, chunkZ, Unit)
+        val dimensionId =
+            XaeroWorldMapCore.currentSession?.mapProcessor?.mapWorld?.currentDimensionId ?: return
+
+        chunkSendQueue.add(chunkX, chunkZ, dimensionId.toString())
     }
 
     @JvmStatic
-    fun onXaeroStateChanged(ready: Boolean) {
-        if (!ready) {
-            onLeaveWorld()
+    fun onXaeroDimensionChanged(dimensionId: String) {
+        LOGGER.debug("Xaero dimension changed: $dimensionId")
 
-            return;
-        }
+        onLeaveWorld()
 
-        val level = Minecraft.getInstance().level ?: return
-        NetworkUtils.sendToServer(
-            C2SXaeroReadyPacket(
-                level.dimension().id().toString()
-            )
-        )
+        NetworkUtils.sendToServer(C2SXaeroReadyPacket(dimensionId))
     }
 
     fun handleChunkDataPacket(packet: ChunkDataPacket) {
@@ -108,10 +105,22 @@ object XMMPClient {
 
         chunkSendQueue.sortByDistance(playerChunkPos.x, playerChunkPos.z)
 
-        val requeueList = mutableListOf<ChunkPosQueue.Entry<Unit>>()
+        val currentDimensionId =
+            XaeroWorldMapCore.currentSession?.mapProcessor?.mapWorld?.currentDimensionId?.toString()
+                ?: return
+
+        val requeueList = mutableListOf<ChunkPosQueue.Entry<String>>()
         var packetsSent = 0
         while (packetsSent < config.chunkSendLimit) {
             val entry = chunkSendQueue.poll() ?: break
+            if (entry.data != currentDimensionId) {
+                LOGGER.debug(
+                    "Chunk (${entry.x}, ${entry.z}) is for dimension {} but player is in {}, ignoring",
+                    entry.data,
+                    currentDimensionId
+                )
+                continue
+            }
 
             val packet = XaeroMapUtils.createChunkDataPacket(entry.x, entry.z)
             if (packet == null) {
@@ -147,10 +156,22 @@ object XMMPClient {
 
         chunkReceiveQueue.sortByDistance(playerChunkPos.x, playerChunkPos.z)
 
+        val currentDimensionId =
+            XaeroWorldMapCore.currentSession?.mapProcessor?.mapWorld?.currentDimensionId?.toString()
+                ?: return
+
         val requeueList = mutableListOf<ChunkPosQueue.Entry<ChunkDataPacket>>()
         var packetsApplied = 0
         while (packetsApplied < config.chunkApplyLimit) {
             val entry = chunkReceiveQueue.poll() ?: break
+            if (entry.data.dimension == currentDimensionId) {
+                LOGGER.debug(
+                    "Received chunk (${entry.x}, ${entry.z}) for dimension {} but is in {}, ignoring",
+                    entry.data.dimension,
+                    currentDimensionId
+                )
+                continue
+            }
 
             if (!XaeroMapUtils.applyChunkData(
                     entry.x,
