@@ -5,7 +5,7 @@ import org.gradle.api.Project
 import org.gradle.api.file.ContentFilterable
 import org.gradle.internal.extensions.core.extra
 
-val templateRegex = Regex("""\$\{(\w+(\.\w+)*)}""")
+val templateRegex = Regex("""\$\{\s*(\w+(\.\w+)*)\s*}""")
 fun ContentFilterable.strictExpand(props: Map<String, String>, filePath: String) {
     var lineNumber = 0
 

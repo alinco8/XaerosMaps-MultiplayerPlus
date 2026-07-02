@@ -8,7 +8,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import xaero.map.file.MapSaveLoad;
 
-@Mixin(MapSaveLoad.class)
+@Mixin(value = MapSaveLoad.class, remap = false)
 public class MapSaveLoadMixin {
 
     @Unique

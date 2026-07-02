@@ -18,6 +18,8 @@ class XMMPConfig {
                     //? } else if neoforge {
                     /*val configDir =
                         net.neoforged.fml.loading.FMLPaths.CONFIGDIR.get()
+                    *///? } else if forge {
+                    /*val configDir = net.minecraftforge.fml.loading.FMLPaths.CONFIGDIR.get()
                     *///? }
 
                     TomlConfigSerializer.Builder.create(config)

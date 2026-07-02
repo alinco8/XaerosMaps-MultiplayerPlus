@@ -71,6 +71,7 @@ neoforge = { version = "21.1.234", range = "[21,22)" }
 kff = { version = "5.12.0", range = "[5,)" }
 yacl = { version = "3.8.2+1.21.1-neoforge", range = ">=3" }
 
-[fabric."1.20.1".deps]
-fabric_api = { version = "0.146.1+26.1.2", range = "*" }
-modmenu = { version = "18.0.0-alpha.8", range = ">=18" }
+[forge."1.20.1".deps]
+forge = { version = "47.4.10", range = "[46,)" }
+kff = { version = "4.12.0", range = "[4,)" }
+yacl = { version = "3.6.6+1.20.1-forge", range = ">=3" }

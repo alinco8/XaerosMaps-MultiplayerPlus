@@ -38,7 +38,7 @@ import net.minecraft.resources.Identifier
 //? }
 
 internal fun ResourceKey<*>.id() = /*?if <26 {*/
-        /*this.location()*//*?} else {*/ this.identifier() /*?}*/
+    /*this.location()*//*?} else {*/ this.identifier() /*?}*/
 
 internal fun loc(path: String) = Identifier.fromNamespaceAndPath(XMMP.MOD_ID, path)
 
@@ -145,7 +145,11 @@ object XMMP {
         }
 
         val buf = Unpooled.buffer()
+        //? if forge {
+        /*packet.encode(FriendlyByteBuf(buf))
+        *///? } else {
         ChunkDataPacket.STREAM_CODEC.encode(FriendlyByteBuf(buf), packet)
+        //? }
         val raw = ByteArray(buf.readableBytes()).also { buf.readBytes(it) }
         buf.release()
 
@@ -237,7 +241,11 @@ object XMMP {
             NetworkUtils.sendToPlayer(
                 player as ServerPlayer,
                 try {
+                    //? if forge {
+                    /*ChunkDataPacket.decode(FriendlyByteBuf(buf))
+                    *///? } else {
                     ChunkDataPacket.STREAM_CODEC.decode(FriendlyByteBuf(buf))
+                    //? }
                 } finally {
                     buf.release()
                 }

@@ -15,7 +15,7 @@ import xaero.map.biome.BlockTintProvider;
 import xaero.map.region.MapUpdateFastConfig;
 import xaero.map.region.OverlayManager;
 
-@Mixin(MapWriter.class)
+@Mixin(value = MapWriter.class, remap = false)
 public class MapWriterMixin {
 
     @Inject(

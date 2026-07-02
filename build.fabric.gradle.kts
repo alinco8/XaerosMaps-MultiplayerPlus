@@ -52,16 +52,16 @@ loom {
 
     runs {
         named("client") {
-            programArgs("--username", "Dev")
+            programArguments.addAll("--username", "Dev")
         }
         create("client2") {
             client()
-            programArgs("--username", "Dev2")
-            runDir("run2")
+            programArguments.addAll("--username", "Dev2")
+            runDirectory = file("run")
         }
 
         configureEach {
-            ideConfigGenerated(true)
+            generateRunConfig = true
 //            vmArgs("-Dsodium.checks.issue2561=false")
         }
     }

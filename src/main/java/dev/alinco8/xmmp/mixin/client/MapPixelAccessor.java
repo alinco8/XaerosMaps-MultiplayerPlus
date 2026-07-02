@@ -4,7 +4,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 import xaero.map.region.MapPixel;
 
-@Mixin(MapPixel.class)
+@Mixin(value = MapPixel.class, remap = false)
 public interface MapPixelAccessor {
 
     @Accessor("light")

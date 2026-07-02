@@ -9,30 +9,16 @@ import com.google.gson.FieldNamingPolicy
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonArray
-import com.google.gson.JsonDeserializationContext
-import com.google.gson.JsonDeserializer
 import com.google.gson.JsonElement
 import com.google.gson.JsonNull
 import com.google.gson.JsonObject
 import com.google.gson.JsonPrimitive
-import com.google.gson.JsonSerializationContext
-import com.google.gson.JsonSerializer
-import com.mojang.serialization.JsonOps
 import dev.alinco8.xmmp.XMMP
-import dev.isxander.yacl3.config.util.CodecSerializerAdapter
 import dev.isxander.yacl3.config.v2.api.ConfigClassHandler
 import dev.isxander.yacl3.config.v2.api.ConfigField
 import dev.isxander.yacl3.config.v2.api.ConfigSerializer
 import dev.isxander.yacl3.config.v2.api.FieldAccess
-import dev.isxander.yacl3.gui.utils.ItemRegistryHelper
-import net.minecraft.core.registries.BuiltInRegistries
-import net.minecraft.network.chat.Component
-import net.minecraft.network.chat.ComponentSerialization
-import net.minecraft.network.chat.Style
-import net.minecraft.world.item.Item
-import java.awt.Color
 import java.io.StringWriter
-import java.lang.reflect.Type
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardOpenOption
@@ -201,13 +187,6 @@ class TomlConfigSerializer<T> private constructor(
             builder
                 .setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES)
                 .serializeNulls()
-                .registerTypeHierarchyAdapter(
-                    Component::class.java,
-                    CodecSerializerAdapter(ComponentSerialization.CODEC),
-                )
-                .registerTypeHierarchyAdapter(Style::class.java, StyleTypeAdapter())
-                .registerTypeHierarchyAdapter(Color::class.java, ColorTypeAdapter())
-                .registerTypeHierarchyAdapter(Item::class.java, ItemTypeAdapter())
                 .setPrettyPrinting()
         }
 
@@ -226,66 +205,6 @@ class TomlConfigSerializer<T> private constructor(
                 path ?: error("`path` must be set before building the TomlConfigSerializer."),
                 gsonBuilder.apply(GsonBuilder()).create(),
             )
-        }
-    }
-
-    class StyleTypeAdapter : JsonSerializer<Style>, JsonDeserializer<Style> {
-        override fun deserialize(
-            json: JsonElement,
-            typeOfT: Type,
-            context: JsonDeserializationContext,
-        ): Style {
-            return Style.Serializer.CODEC
-                .parse(JsonOps.INSTANCE, json)
-                .result()
-                .orElse(Style.EMPTY)
-        }
-
-        override fun serialize(
-            src: Style,
-            typeOfSrc: Type,
-            context: JsonSerializationContext,
-        ): JsonElement {
-            return Style.Serializer.CODEC
-                .encodeStart(JsonOps.INSTANCE, src)
-                .result()
-                .orElse(JsonNull.INSTANCE)
-        }
-    }
-
-    class ColorTypeAdapter : JsonSerializer<Color>, JsonDeserializer<Color> {
-        override fun deserialize(
-            json: JsonElement,
-            typeOfT: Type,
-            context: JsonDeserializationContext,
-        ): Color {
-            return Color(json.asInt, true)
-        }
-
-        override fun serialize(
-            src: Color,
-            typeOfSrc: Type,
-            context: JsonSerializationContext,
-        ): JsonElement {
-            return JsonPrimitive(src.rgb)
-        }
-    }
-
-    class ItemTypeAdapter : JsonSerializer<Item>, JsonDeserializer<Item> {
-        override fun deserialize(
-            json: JsonElement,
-            typeOfT: Type,
-            context: JsonDeserializationContext,
-        ): Item {
-            return ItemRegistryHelper.getItemFromName(json.asString)
-        }
-
-        override fun serialize(
-            src: Item,
-            typeOfSrc: Type,
-            context: JsonSerializationContext,
-        ): JsonElement {
-            return JsonPrimitive(BuiltInRegistries.ITEM.getKey(src).toString())
         }
     }
 }

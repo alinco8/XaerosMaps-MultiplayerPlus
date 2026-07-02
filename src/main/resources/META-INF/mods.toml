@@ -7,7 +7,7 @@ issueTrackerURL = "${mod.links.issues}"
 modId = "${mod.id}"
 version = "${mod.version}+${env.minecraft}-${env.loader}"
 displayName = "${mod.name}"
-updateJSONURL = "${mod.links.neoforge_updates}"
+updateJSONURL = "${mod.links.forge_updates}"
 displayURL = "${mod.links.homepage}"
 logoFile = "assets/${mod.id}/icon.png"
 authors = "${mod.author}"
@@ -17,38 +17,27 @@ description = '''${mod.description}'''
 config = "${mod.id}.mixins.json"
 
 [[dependencies.${ mod.id }]]
-modId = "neoforge"
-type = "required"
-versionRange = "${deps.neoforge.range}"
-ordering = "NONE"
-side = "BOTH"
-
-[[dependencies.${ mod.id }]]
-modId = "minecraft"
-type = "required"
-versionRange = "${deps.minecraft.range}"
-ordering = "NONE"
-side = "BOTH"
+modId = "forge"
+mandatory = true
+versionRange = "${deps.forge.range}"
 
 [[dependencies.${ mod.id }]]
 modId = "kotlinforforge"
-type = "required"
+mandatory = true
 versionRange = "${deps.kff.range}"
-ordering = "NONE"
-side = "BOTH"
 
 [[dependencies.${ mod.id }]]
 modId = "xaeroworldmap"
-type = "required"
+mandatory = true
 versionRange = "${deps.xaero_world_map.range}"
 
 [[dependencies.${ mod.id }]]
 modId = "xaerominimap"
-type = "required"
+mandatory = true
 versionRange = "${deps.xaero_minimap.range}"
 
 [[dependencies.${ mod.id }]]
 modId = "yet_another_config_lib_v3"
-type = "required"
+mandatory = true
 versionRange = "${deps.yacl.range}"
 

@@ -13,7 +13,15 @@ plugins {
 }
 
 repositories {
-//    maven("https://maven.isxander.dev/releases")
+    maven("https://maven.isxander.dev/releases") { // YACL (1.20.x)
+        content {
+            includeVersionByRegex(
+                "dev.isxander",
+                "yet-another-config-lib",
+                "^[^+]+\\+1\\.20.*"
+            )
+        }
+    }
     strictMaven("org.quiltmc", "https://maven.quiltmc.org/repository/release") // QuiltMC
     strictMaven("maven.modrinth", "https://api.modrinth.com/maven") // Modrinth
     strictMaven("curse.maven", "https://beta.cursemaven.com") // CurseMaven
