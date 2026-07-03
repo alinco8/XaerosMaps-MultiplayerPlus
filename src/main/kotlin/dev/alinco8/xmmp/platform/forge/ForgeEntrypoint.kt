@@ -3,14 +3,12 @@
 
 import dev.alinco8.xmmp.XMMP
 import dev.alinco8.xmmp.XMMPClient
-import dev.alinco8.xmmp.config.ConfigScreen
 import dev.alinco8.xmmp.loc
 import dev.alinco8.xmmp.packet.C2SChunkRowRequestPacket
 import dev.alinco8.xmmp.packet.C2SXaeroReadyPacket
 import dev.alinco8.xmmp.packet.ChunkDataPacket
 import dev.alinco8.xmmp.packet.S2CRegionTimestampsPacket
 import net.minecraftforge.api.distmarker.Dist
-import net.minecraftforge.client.ConfigScreenHandler
 import net.minecraftforge.common.MinecraftForge
 import net.minecraftforge.event.entity.player.PlayerEvent
 import net.minecraftforge.event.server.ServerStartingEvent
@@ -23,21 +21,12 @@ import net.minecraftforge.network.NetworkDirection
 import net.minecraftforge.network.NetworkRegistry
 import net.minecraftforge.network.simple.SimpleChannel
 import thedarkcolour.kotlinforforge.forge.DIST
-import thedarkcolour.kotlinforforge.forge.LOADING_CONTEXT
 import thedarkcolour.kotlinforforge.forge.MOD_BUS
 
 @Mod(XMMP.MOD_ID)
 class ForgeEntrypoint {
     init {
         XMMP.onInitialize()
-
-        LOADING_CONTEXT.container.registerExtensionPoint(
-            ConfigScreenHandler.ConfigScreenFactory::class.java, {
-                ConfigScreenHandler.ConfigScreenFactory { _, parent ->
-                    ConfigScreen.createScreen(parent)
-                }
-            }
-        )
 
         MOD_BUS.register(ModEvents)
         MinecraftForge.EVENT_BUS.register(this)
