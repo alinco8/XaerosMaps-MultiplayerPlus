@@ -164,7 +164,7 @@ object XMMPClient {
         var packetsApplied = 0
         while (packetsApplied < config.chunkApplyLimit) {
             val entry = chunkReceiveQueue.poll() ?: break
-            if (entry.data.dimension == currentDimensionId) {
+            if (entry.data.dimension != currentDimensionId) {
                 LOGGER.debug(
                     "Received chunk (${entry.x}, ${entry.z}) for dimension {} but is in {}, ignoring",
                     entry.data.dimension,

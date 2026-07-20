@@ -33,8 +33,15 @@ legacyForge {
     }
 
     runs {
-        create("client") { client() }
-        create("server") { server(); programArgument("--nogui") }
+        create("client") {
+            client()
+            ideName = "${project().name} - Client"
+        }
+        create("server") {
+            server();
+            programArgument("--nogui")
+            ideName = "${project().name} - Server"
+        }
 
         configureEach {
             systemProperty("forge.logging.markers", "REGISTRIES")
@@ -79,10 +86,6 @@ tasks {
     }
     named<ProcessResources>("processResources") {
         exclude("fabric.mod.json5", "META-INF/neoforge.mods.toml")
-
-        if (stonecutter.eval(minecraft, "<=1.20.4")) {
-            rename("""neoforge\.mods\.toml""", "mods.toml")
-        }
     }
     named<Copy>("buildAndCollect") {
         from(reobfJar.map { it.archiveFile }, sourcesJar.map { it.archiveFile })

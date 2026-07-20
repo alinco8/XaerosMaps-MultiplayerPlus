@@ -1,20 +1,28 @@
 //? if fabric {
 /*package dev.alinco8.xmmp.platform.fabric
 
+//? if >=26 {
+/*import net.fabricmc.fabric.api.entity.event.v1.ServerEntityLevelChangeEvents
+*///? } else {
+import net.fabricmc.fabric.api.entity.event.v1.ServerEntityWorldChangeEvents as ServerEntityLevelChangeEvents
+//? }
+
+//? if >=1.20.5 {
+import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry
+//? }
+
 import dev.alinco8.xmmp.XMMP
+import dev.alinco8.xmmp.common.XMMPPacket
+import dev.alinco8.xmmp.common.XMMPPacketType
 import dev.alinco8.xmmp.packet.C2SChunkRowRequestPacket
 import dev.alinco8.xmmp.packet.C2SXaeroReadyPacket
 import dev.alinco8.xmmp.packet.ChunkDataPacket
 import dev.alinco8.xmmp.packet.S2CRegionTimestampsPacket
 import net.fabricmc.api.ModInitializer
-import net.fabricmc.fabric.api.entity.event.v1.ServerEntityLevelChangeEvents
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents
-import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking
-import net.minecraft.network.FriendlyByteBuf
-import net.minecraft.network.codec.StreamCodec
-import net.minecraft.network.protocol.common.custom.CustomPacketPayload
+import net.minecraft.server.level.ServerPlayer
 
 class FabricEntrypoint : ModInitializer {
     override fun onInitialize() {
@@ -30,33 +38,69 @@ class FabricEntrypoint : ModInitializer {
         ServerPlayConnectionEvents.DISCONNECT.register { listener, _ ->
             XMMP.onPlayerLeave(listener.player)
         }
-        ServerEntityLevelChangeEvents.AFTER_PLAYER_CHANGE_LEVEL.register { player, _, _ ->
-            XMMP.onPlayerDimensionChange(player)
-        }
+        ServerEntityLevelChangeEvents
+            //? if >=26 {
+            /*.AFTER_PLAYER_CHANGE_LEVEL
+            *///? } else {
+            .AFTER_PLAYER_CHANGE_WORLD
+            //? }
+            .register { player, _, _ ->
+                XMMP.onPlayerDimensionChange(player)
+            }
 
-        registerPacket(C2SChunkRowRequestPacket.TYPE, C2SChunkRowRequestPacket.STREAM_CODEC)
-        registerPacket(C2SXaeroReadyPacket.TYPE, C2SXaeroReadyPacket.STREAM_CODEC)
-        registerPacket(ChunkDataPacket.TYPE, ChunkDataPacket.STREAM_CODEC)
-        registerPacket(S2CRegionTimestampsPacket.TYPE, S2CRegionTimestampsPacket.STREAM_CODEC)
+        //? if >=1.20.5 {
+        registerPacket(C2SChunkRowRequestPacket)
+        registerPacket(C2SXaeroReadyPacket)
+        registerPacket(ChunkDataPacket)
+        registerPacket(S2CRegionTimestampsPacket)
+        //? }
 
-        ServerPlayNetworking.registerGlobalReceiver(ChunkDataPacket.TYPE) { packet, ctx ->
-            XMMP.handleChunkDataPacket(packet, ctx.player())
+        registerCommonListener(C2SChunkRowRequestPacket) { packet, player ->
+            XMMP.handleChunkRowRequestPacket(packet, player)
         }
-        ServerPlayNetworking.registerGlobalReceiver(C2SXaeroReadyPacket.TYPE) { packet, ctx ->
-            XMMP.handleXaeroReadyPacket(packet, ctx.player())
+        registerCommonListener(C2SXaeroReadyPacket) { packet, player ->
+            XMMP.handleXaeroReadyPacket(packet, player)
         }
-
-        ServerPlayNetworking.registerGlobalReceiver(C2SChunkRowRequestPacket.TYPE) { packet, ctx ->
-            XMMP.handleChunkRowRequestPacket(packet, ctx.player())
+        registerCommonListener(ChunkDataPacket) { packet, player ->
+            XMMP.handleChunkDataPacket(packet, player)
         }
     }
 
-    private fun <T : CustomPacketPayload> registerPacket(
-        type: CustomPacketPayload.Type<T>,
-        codec: StreamCodec<FriendlyByteBuf, T>
+    private fun <T : XMMPPacket<T>> registerCommonListener(
+        packetType: XMMPPacketType<T>,
+        listener: (T, ServerPlayer) -> Unit
     ) {
-        PayloadTypeRegistry.serverboundPlay().register(type, codec)
-        PayloadTypeRegistry.clientboundPlay().register(type, codec)
+        //? if >=1.20.5 {
+        ServerPlayNetworking.registerGlobalReceiver(packetType.payloadType) { packet, ctx ->
+            listener(packet, ctx.player())
+        }
+        //? } else {
+        /*ServerPlayNetworking.registerGlobalReceiver(packetType.id()) { _, player, _, buf, _ ->
+            listener(packetType.decode(buf), player)
+        }
+        *///? }
     }
+
+    //? if >=1.20.5 {
+    private fun <T : XMMPPacket<T>> registerPacket(type: XMMPPacketType<T>) {
+        val codec = net.minecraft.network.codec.StreamCodec
+            .of(type::encode, type::decode)
+
+        PayloadTypeRegistry
+            //? if >=26 {
+            /*.serverboundPlay()
+            *///? } else {
+            .playC2S()
+            //? }
+            .register(type.payloadType, codec)
+        PayloadTypeRegistry
+            //? if >=26 {
+            /*.clientboundPlay()
+            *///? } else {
+            .playS2C()
+            //? }
+            .register(type.payloadType, codec)
+    }
+    //? }
 }
 *///? }

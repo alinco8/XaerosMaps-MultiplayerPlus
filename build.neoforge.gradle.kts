@@ -33,8 +33,15 @@ neoForge {
     }
 
     runs {
-        create("client") { client() }
-        create("server") { server(); programArgument("--nogui") }
+        create("client") {
+            client()
+            ideName = "${project().name} - Client"
+        }
+        create("server") {
+            server();
+            programArgument("--nogui")
+            ideName = "${project().name} - Server"
+        }
 
         configureEach {
             systemProperty("forge.logging.markers", "REGISTRIES")
@@ -49,7 +56,7 @@ neoForge {
     }
 }
 
-val localRuntime: Configuration by configurations.creating
+val localRuntime = configurations.create("localRuntime")
 
 configurations {
     runtimeClasspath {
@@ -61,7 +68,9 @@ dependencies {
     implementation("thedarkcolour:kotlinforforge-neoforge:${prop("deps.kff.version")}")
 
     jarJar(implementation("com.github.luben:zstd-jni:${prop("libs.zstd")}")!!)
-    add("additionalRuntimeClasspath", "com.github.luben:zstd-jni:${prop("libs.zstd")}")
+    if (stonecutter.eval(minecraft, "<=1.21.8")) {
+        add("additionalRuntimeClasspath", "com.github.luben:zstd-jni:${prop("libs.zstd")}")
+    }
 
     compileOnly("com.electronwill.night-config:toml:${prop("libs.night_config")}")
 

@@ -1,10 +1,13 @@
 package dev.alinco8.xmmp.config
 
 import dev.isxander.yacl3.api.ConfigCategory
+import dev.isxander.yacl3.api.Controller
 import dev.isxander.yacl3.api.Option
 import dev.isxander.yacl3.api.OptionDescription
 import dev.isxander.yacl3.api.YetAnotherConfigLib
+import dev.isxander.yacl3.api.controller.ControllerBuilder
 import dev.isxander.yacl3.api.controller.IntegerFieldControllerBuilder
+import dev.isxander.yacl3.api.controller.LongFieldControllerBuilder
 import kotlin.reflect.KMutableProperty0
 import kotlin.reflect.KProperty0
 import net.minecraft.client.gui.screens.Screen
@@ -15,16 +18,28 @@ private fun <T : Any> Option.Builder<T>.bind(
     current: KMutableProperty0<T>,
 ) = binding(default.get(), { current.get() }, { current.set(it) })
 
-object ConfigScreen {
-    private fun t(text: String) = Component.translatable("xmmp.config.$text")
+private fun t(text: String) = Component.translatable("xmmp.config.$text")
 
+private fun <T : Any> ConfigCategory.Builder.simpleOption(
+    default: KProperty0<T>,
+    current: KMutableProperty0<T>,
+    controller: (Option<T>) -> ControllerBuilder<T>
+) = option(
+    Option.createBuilder<T>()
+        .name(t("categories.general.options.${current.name}.name"))
+        .description(OptionDescription.of(t("categories.general.options.${current.name}.description")))
+        .bind(default, current)
+        .controller(controller)
+        .build()
+)
+
+object ConfigScreen {
     @Suppress("MaxLineLength")
     fun createScreen(parent: Screen): Screen {
         val h = XMMPConfig.HANDLER
         val d = h.defaults()
         val i = h.instance()
 
-        //TODO: add rest of the options
         return YetAnotherConfigLib.createBuilder()
             .title(t("title"))
             .save {
@@ -33,29 +48,35 @@ object ConfigScreen {
             .category(
                 ConfigCategory.createBuilder()
                     .name(t("categories.general.name"))
-                    .option(
-                        Option.createBuilder<Int>()
-                            .name(t("categories.general.options.chunkSendLimit.name"))
-                            .description(OptionDescription.of(t("categories.general.options.chunkSendLimit.description")))
-                            .bind(d::chunkSendLimit, i::chunkSendLimit)
-                            .controller(IntegerFieldControllerBuilder::create)
-                            .build()
+                    .simpleOption(
+                        d::chunkSendLimit,
+                        i::chunkSendLimit,
+                        IntegerFieldControllerBuilder::create
                     )
-                    .option(
-                        Option.createBuilder<Int>()
-                            .name(t("categories.general.options.chunkApplyLimit.name"))
-                            .description(OptionDescription.of(t("categories.general.options.chunkApplyLimit.description")))
-                            .bind(d::chunkApplyLimit, i::chunkApplyLimit)
-                            .controller(IntegerFieldControllerBuilder::create)
-                            .build()
+                    .simpleOption(
+                        d::chunkApplyLimit,
+                        i::chunkApplyLimit,
+                        IntegerFieldControllerBuilder::create
                     )
-                    .option(
-                        Option.createBuilder<Int>()
-                            .name(t("categories.general.options.maxRetries.name"))
-                            .description(OptionDescription.of(t("categories.general.options.maxRetries.description")))
-                            .bind(d::maxRetries, i::maxRetries)
-                            .controller(IntegerFieldControllerBuilder::create)
-                            .build()
+                    .simpleOption(
+                        d::maxRetries,
+                        i::maxRetries,
+                        IntegerFieldControllerBuilder::create
+                    )
+                    .simpleOption(
+                        d::flushInterval,
+                        i::flushInterval,
+                        LongFieldControllerBuilder::create
+                    )
+                    .simpleOption(
+                        d::maxChunkUploadsPerSecond,
+                        i::maxChunkUploadsPerSecond,
+                        IntegerFieldControllerBuilder::create
+                    )
+                    .simpleOption(
+                        d::maxChunkRowRequestsPerSecond,
+                        i::maxChunkRowRequestsPerSecond,
+                        IntegerFieldControllerBuilder::create
                     )
                     .build()
             )

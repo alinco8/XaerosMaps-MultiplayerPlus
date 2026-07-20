@@ -8,11 +8,13 @@ plugins {
     id("project.common")
 }
 
-val minecraft: String by extra
-val loader: String by extra
+val minecraft = extra["minecraft"] as String
+val loader = extra["loader"] as String
 
 repositories {
-    strictMaven("com.terraformersmc", "https://maven.terraformersmc.com/") // Mod Menu
+    //TODO: use strictMaven(...)
+    maven("https://maven.terraformersmc.com/releases") // Mod Menu
+    maven("https://maven.terraformersmc.com") // Mod Menu
 }
 
 dependencies {
@@ -30,34 +32,23 @@ dependencies {
 
     include(implementation("com.electronwill.night-config:toml:${prop("libs.night_config")}")!!)
     include(implementation("com.electronwill.night-config:core:${prop("libs.night_config")}")!!)
-
-    listOf(
-        "sodium",
-        "lithium",
-        "immediatelyfast",
-        "ferrite-core",
-        "modernfix",
-        "badoptimizations"
-    ).forEach {
-        try {
-            localRuntime(fletchingTable.modrinth(it))
-        } catch (_: NoSuchElementException) {
-            // Optional dependency
-        }
-    }
 }
 
 loom {
     log4jConfigs.from(rootProject.file("log4j2.xml"))
 
+    if (stonecutter.eval(minecraft, "<26"))
+        accessWidenerPath = rootProject.file("src/main/resources/${prop("mod.id")}-named.aw")
+
     runs {
         named("client") {
             programArguments.addAll("--username", "Dev")
+            displayName = "${project.name} - Client"
+            appendProjectPathToDisplayName = false
         }
-        create("client2") {
-            client()
-            programArguments.addAll("--username", "Dev2")
-            runDirectory = file("run")
+        named("server") {
+            displayName = "${project.name} - Server"
+            appendProjectPathToDisplayName = false
         }
 
         configureEach {

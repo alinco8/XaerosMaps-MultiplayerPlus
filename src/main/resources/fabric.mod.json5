@@ -10,6 +10,9 @@
   license: "${mod.license}",
   icon: "assets/${mod.id}/icon.png",
   environment: "*",
+  //? if <26 {
+  accessWidener: "${mod.id}-named.aw",
+  //? }
   entrypoints: {
     main: [
       {

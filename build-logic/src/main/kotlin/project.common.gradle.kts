@@ -2,6 +2,7 @@ import buildlogic.ifProp
 import buildlogic.modImplementation
 import buildlogic.prop
 import buildlogic.propOrNull
+import buildlogic.propList
 import buildlogic.strictExpand
 import buildlogic.strictMaven
 
@@ -13,15 +14,7 @@ plugins {
 }
 
 repositories {
-    maven("https://maven.isxander.dev/releases") { // YACL (1.20.x)
-        content {
-            includeVersionByRegex(
-                "dev.isxander",
-                "yet-another-config-lib",
-                "^[^+]+\\+1\\.20.*"
-            )
-        }
-    }
+    maven("https://maven.isxander.dev/releases")
     strictMaven("org.quiltmc", "https://maven.quiltmc.org/repository/release") // QuiltMC
     strictMaven("maven.modrinth", "https://api.modrinth.com/maven") // Modrinth
     strictMaven("curse.maven", "https://beta.cursemaven.com") // CurseMaven
@@ -71,9 +64,27 @@ fletchingTable {
 dependencies {
     fletchingTable.minecraft = minecraft
 
-    modImplementation("xaero.lib:xaerolib-$loader-$minecraft:${prop("deps.xaero_lib.version")}")
-    modImplementation("xaero.map:xaeroworldmap-$loader-$minecraft:${prop("deps.xaero_world_map.version")}")
-    modImplementation("xaero.minimap:xaerominimap-$loader-$minecraft:${prop("deps.xaero_minimap.version")}")
+    modImplementation(
+        "xaero.lib:xaerolib-$loader-${propOrNull("deps.xaero_lib.mc") ?: minecraft}:${
+            prop(
+                "deps.xaero_lib.version"
+            )
+        }"
+    )
+    modImplementation(
+        "xaero.map:xaeroworldmap-$loader-${propOrNull("deps.xaero_world_map.mc") ?: minecraft}:${
+            prop(
+                "deps.xaero_world_map.version"
+            )
+        }"
+    )
+    modImplementation(
+        "xaero.minimap:xaerominimap-$loader-${propOrNull("deps.xaero_minimap.mc") ?: minecraft}:${
+            prop(
+                "deps.xaero_minimap.version"
+            )
+        }"
+    )
     modImplementation("dev.isxander:yet-another-config-lib:${prop("deps.yacl.version")}")
 }
 
@@ -98,7 +109,8 @@ tasks {
     named<ProcessResources>("processResources") {
         dependsOn("stonecutterGenerate")
 
-        val props = properties
+        val loaderValue = loader
+        val props = ext.properties
             .filterKeys { it.startsWith("mod.") || it.startsWith("deps.") }
             .filterValues { it != null }
             .mapValues { it.value.toString() } +
@@ -108,6 +120,7 @@ tasks {
                 )
 
         inputs.property("props", props)
+        inputs.property("loader", loaderValue)
 
         filesMatching(
             listOf(
@@ -119,7 +132,7 @@ tasks {
         ) {
 
             filteringCharset = "UTF-8"
-            strictExpand("neoforge", props, file.path)
+            strictExpand(loaderValue, props, file.path)
         }
     }
     named("sourcesJar") {
@@ -142,8 +155,7 @@ publishMods {
 
     displayName = "${prop("mod.version")} for $loader $minecraft"
 
-    var mcVersions = ((propOrNull("publish.minecraft")
-        ?.split(" ") ?: listOf()) + minecraft).distinct()
+    var mcVersions = (propList("publish.minecraft") + minecraft).distinct()
 
     var slugs = mutableListOf(
         "yacl", "xaeros-world-map", "xaeros-minimap"

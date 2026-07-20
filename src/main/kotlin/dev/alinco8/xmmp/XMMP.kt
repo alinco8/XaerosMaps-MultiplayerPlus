@@ -29,18 +29,23 @@ import net.minecraft.world.level.storage.LevelResource
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
-//? if <26 {
-import net.minecraft.resources.ResourceLocation as Identifier
-
-//? } else {
+//? if >=1.21.11 {
 /*import net.minecraft.resources.Identifier
 
+*///? } else {
+import net.minecraft.resources.ResourceLocation as Identifier
+
+//? }
+
+internal fun ResourceKey<*>.id() =
+    /*?if >=1.21.11 {*/ /*this.identifier() *//*?} else {*/ this.location() /*?}*/
+
+internal fun loc(path: String): Identifier =
+//? if forge || >=1.21 {
+    Identifier.fromNamespaceAndPath(XMMP.MOD_ID, path)
+//? } else {
+/*Identifier(XMMP.MOD_ID, path)
 *///? }
-
-internal fun ResourceKey<*>.id() = /*?if <26 {*/
-    this.location()/*?} else {*/ /*this.identifier() *//*?}*/
-
-internal fun loc(path: String) = Identifier.fromNamespaceAndPath(XMMP.MOD_ID, path)
 
 object XMMP {
     const val MOD_ID = "xmmp"
@@ -112,7 +117,6 @@ object XMMP {
 
             regionCache.close()
         }
-        scope.cancel()
     }
 
     fun onPlayerDimensionChange(player: Player) {
@@ -145,11 +149,8 @@ object XMMP {
         }
 
         val buf = Unpooled.buffer()
-        //? if forge {
-        /*packet.encode(FriendlyByteBuf(buf))
-        *///? } else {
-        ChunkDataPacket.STREAM_CODEC.encode(FriendlyByteBuf(buf), packet)
-        //? }
+        ChunkDataPacket.encode(FriendlyByteBuf(buf), packet)
+
         val raw = ByteArray(buf.readableBytes()).also { buf.readBytes(it) }
         buf.release()
 
@@ -241,11 +242,7 @@ object XMMP {
             NetworkUtils.sendToPlayer(
                 player as ServerPlayer,
                 try {
-                    //? if forge {
-                    /*ChunkDataPacket.decode(FriendlyByteBuf(buf))
-                    *///? } else {
-                    ChunkDataPacket.STREAM_CODEC.decode(FriendlyByteBuf(buf))
-                    //? }
+                    ChunkDataPacket.decode(FriendlyByteBuf(buf))
                 } finally {
                     buf.release()
                 }

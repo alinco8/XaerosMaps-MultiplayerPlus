@@ -54,7 +54,7 @@ class ForgeEntrypoint {
                     CHANNEL.registerMessage(
                         id++,
                         C2SXaeroReadyPacket::class.java,
-                        C2SXaeroReadyPacket::encode,
+                        { packet, buf -> C2SXaeroReadyPacket.encode(buf, packet) },
                         C2SXaeroReadyPacket::decode
                     ) { packet, ctx ->
                         val sender = ctx.get().sender
@@ -69,7 +69,7 @@ class ForgeEntrypoint {
                     CHANNEL.registerMessage(
                         id++,
                         ChunkDataPacket::class.java,
-                        ChunkDataPacket::encode,
+                        { packet, buf -> ChunkDataPacket.encode(buf, packet) },
                         ChunkDataPacket::decode
                     ) { packet, ctx ->
                         val ctx = ctx.get()
@@ -92,7 +92,7 @@ class ForgeEntrypoint {
                     CHANNEL.registerMessage(
                         id++,
                         C2SChunkRowRequestPacket::class.java,
-                        C2SChunkRowRequestPacket::encode,
+                        { packet, buf -> C2SChunkRowRequestPacket.encode(buf, packet) },
                         C2SChunkRowRequestPacket::decode
                     ) { packet, ctx ->
                         val sender = ctx.get().sender
@@ -107,7 +107,7 @@ class ForgeEntrypoint {
                     CHANNEL.registerMessage(
                         id++,
                         S2CRegionTimestampsPacket::class.java,
-                        S2CRegionTimestampsPacket::encode,
+                        { packet, buf -> S2CRegionTimestampsPacket.encode(buf, packet) },
                         S2CRegionTimestampsPacket::decode
                     ) { packet, ctx ->
                         ctx.get().enqueueWork {

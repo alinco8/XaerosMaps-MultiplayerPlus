@@ -1,22 +1,15 @@
 package dev.alinco8.xmmp.packet
 
-import java.util.*
+import dev.alinco8.xmmp.common.XMMPPacket
+import dev.alinco8.xmmp.common.XMMPPacketType
+import dev.alinco8.xmmp.loc
+import net.minecraft.core.registries.Registries
 import net.minecraft.network.FriendlyByteBuf
 import net.minecraft.resources.ResourceKey
 import net.minecraft.world.level.biome.Biome
-import net.minecraft.world.level.block.state.BlockState
-
-//? if >=1.20.5 {
-import dev.alinco8.xmmp.loc
-import net.minecraft.core.registries.Registries
-import net.minecraft.network.codec.ByteBufCodecs
-import net.minecraft.network.codec.StreamCodec
-import net.minecraft.network.protocol.common.custom.CustomPacketPayload
-//? } else {
-/*import net.minecraft.core.registries.Registries
 import net.minecraft.world.level.block.Block
-
-*///? }
+import net.minecraft.world.level.block.state.BlockState
+import java.util.Objects
 
 data class ChunkDataPacket(
     val chunkX: Int,
@@ -24,7 +17,7 @@ data class ChunkDataPacket(
     val tileData: TileData,
     val blocks: Array<BlockData>,
     val dimension: String,
-)/*?>=1.20.5>>'{'*/ : CustomPacketPayload   {
+) : XMMPPacket<ChunkDataPacket>() {
     data class BlockOverlay(
         val state: BlockState,
         val light: Byte,
@@ -32,54 +25,27 @@ data class ChunkDataPacket(
         val opacity: Short,
     ) {
         companion object {
-            //? if >=1.20.5 {
-            val OVERLAY_STREAM_CODEC = StreamCodec.composite(
-                ByteBufCodecs.fromCodec(BlockState.CODEC), BlockOverlay::state,
-                ByteBufCodecs.BYTE, BlockOverlay::light,
-                ByteBufCodecs.BOOL, BlockOverlay::glowing,
-                ByteBufCodecs.SHORT, BlockOverlay::opacity,
-                ::BlockOverlay
-            )
+            const val MAX_OVERLAYS = 256
 
-            val OVERLAYS_STREAM_CODEC = StreamCodec.of<FriendlyByteBuf, List<BlockOverlay>>(
-                { buf, list ->
-                    buf.writeInt(list.size)
-                    list.forEach { OVERLAY_STREAM_CODEC.encode(buf, it) }
-                },
-                { buf ->
-                    val size = buf.readInt()
-                    require(size in 0..MAX_OVERLAYS) { "Invalid overlay count: $size" }
-                    List(size) { OVERLAY_STREAM_CODEC.decode(buf) }
-                }
-            )
-            //? } else {
-            /*fun encode(buf: FriendlyByteBuf, overlay: BlockOverlay) {
-                buf.writeVarInt(Block.BLOCK_STATE_REGISTRY.getId(overlay.state))
-                buf.writeByte(overlay.light.toInt())
-                buf.writeBoolean(overlay.glowing)
-                buf.writeShort(overlay.opacity.toInt())
-            }
-
-            fun decode(buf: FriendlyByteBuf) = BlockOverlay(
+            fun read(buf: FriendlyByteBuf) = BlockOverlay(
                 Block.BLOCK_STATE_REGISTRY.byIdOrThrow(buf.readVarInt()),
                 buf.readByte(),
                 buf.readBoolean(),
                 buf.readShort()
             )
 
-            fun encodeList(buf: FriendlyByteBuf, list: List<BlockOverlay>) {
-                buf.writeInt(list.size)
-                list.forEach { encode(buf, it) }
-            }
-
-            fun decodeList(buf: FriendlyByteBuf): List<BlockOverlay> {
+            fun readList(buf: FriendlyByteBuf): List<BlockOverlay> {
                 val size = buf.readInt()
                 require(size in 0..MAX_OVERLAYS) { "Invalid overlay count: $size" }
-                return List(size) { decode(buf) }
+                return List(size) { read(buf) }
             }
-            *///? }
+        }
 
-            const val MAX_OVERLAYS = 256
+        fun write(buf: FriendlyByteBuf) {
+            buf.writeVarInt(Block.BLOCK_STATE_REGISTRY.getId(state))
+            buf.writeByte(light.toInt())
+            buf.writeBoolean(glowing)
+            buf.writeShort(opacity.toInt())
         }
     }
 
@@ -87,18 +53,11 @@ data class ChunkDataPacket(
         val worldInterpretationVersion: Int,
     ) {
         companion object {
-            //? if >=1.20.5 {
-            val STREAM_CODEC = StreamCodec.composite(
-                ByteBufCodecs.INT, TileData::worldInterpretationVersion,
-                ::TileData
-            )
-            //? } else {
-            /*fun encode(buf: FriendlyByteBuf, data: TileData) {
-                buf.writeInt(data.worldInterpretationVersion)
-            }
+            fun read(buf: FriendlyByteBuf) = TileData(buf.readInt())
+        }
 
-            fun decode(buf: FriendlyByteBuf) = TileData(buf.readInt())
-            *///? }
+        fun write(buf: FriendlyByteBuf) {
+            buf.writeInt(worldInterpretationVersion)
         }
     }
 
@@ -109,106 +68,60 @@ data class ChunkDataPacket(
         val biome: ResourceKey<Biome>,
         val lightLevel: Byte,
         val glowing: Boolean,
-        val overlays: List<BlockOverlay>
+        val overlays: List<BlockOverlay>,
     ) {
         companion object {
-            //? if >=1.20.5 {
-            val STREAM_CODEC: StreamCodec<FriendlyByteBuf, BlockData> =
-                StreamCodec.of({ buf, packet ->
-                    ByteBufCodecs.fromCodec(BlockState.CODEC).encode(buf, packet.blockState)
-                    buf.writeShort(packet.height.toInt())
-                    buf.writeShort(packet.topHeight.toInt())
-                    buf.writeResourceKey(packet.biome)
-                    buf.writeByte(packet.lightLevel.toInt())
-                    buf.writeBoolean(packet.glowing)
-                    BlockOverlay.OVERLAYS_STREAM_CODEC.encode(buf, packet.overlays)
-                }, { buf ->
-                    BlockData(
-                        ByteBufCodecs.fromCodec(BlockState.CODEC).decode(buf),
-                        buf.readShort(),
-                        buf.readShort(),
-                        buf.readResourceKey(Registries.BIOME),
-                        buf.readByte(),
-                        buf.readBoolean(),
-                        BlockOverlay.OVERLAYS_STREAM_CODEC.decode(buf)
-                    )
-                })
-
-            val CHUNK_BLOCKS_STREAM_CODEC: StreamCodec<FriendlyByteBuf, Array<BlockData>> =
-                StreamCodec.of(
-                    { buf, arr ->
-                        buf.writeInt(arr.size)
-                        arr.forEach { STREAM_CODEC.encode(buf, it) }
-                    },
-                    { buf ->
-                        val size = buf.readInt()
-                        require(size == CHUNK_SIZE * CHUNK_SIZE) {
-                            "Invalid block count: $size"
-                        }
-                        Array(size) { STREAM_CODEC.decode(buf) }
-                    }
-                )
-            //? } else {
-            /*fun encode(buf: FriendlyByteBuf, packet: BlockData) {
-                buf.writeVarInt(Block.BLOCK_STATE_REGISTRY.getId(packet.blockState))
-                buf.writeShort(packet.height.toInt())
-                buf.writeShort(packet.topHeight.toInt())
-                buf.writeResourceKey(packet.biome)
-                buf.writeByte(packet.lightLevel.toInt())
-                buf.writeBoolean(packet.glowing)
-                BlockOverlay.encodeList(buf, packet.overlays)
-            }
-
-            fun decode(buf: FriendlyByteBuf) = BlockData(
+            fun read(buf: FriendlyByteBuf) = BlockData(
                 Block.BLOCK_STATE_REGISTRY.byIdOrThrow(buf.readVarInt()),
                 buf.readShort(),
                 buf.readShort(),
                 buf.readResourceKey(Registries.BIOME),
                 buf.readByte(),
                 buf.readBoolean(),
-                BlockOverlay.decodeList(buf)
+                BlockOverlay.readList(buf)
             )
 
-            fun encodeArray(buf: FriendlyByteBuf, arr: Array<BlockData>) {
-                buf.writeInt(arr.size)
-                arr.forEach { encode(buf, it) }
-            }
-
-            fun decodeArray(buf: FriendlyByteBuf): Array<BlockData> {
+            fun readArray(buf: FriendlyByteBuf): Array<BlockData> {
                 val size = buf.readInt()
-                require(size == CHUNK_SIZE * CHUNK_SIZE) {
-                    "Invalid block count: $size"
-                }
-                return Array(size) { decode(buf) }
+                require(size == CHUNK_SIZE * CHUNK_SIZE) { "Invalid block count: $size" }
+                return Array(size) { read(buf) }
             }
-            *///? }
+        }
+
+        fun write(buf: FriendlyByteBuf) {
+            buf.writeVarInt(Block.BLOCK_STATE_REGISTRY.getId(blockState))
+            buf.writeShort(height.toInt())
+            buf.writeShort(topHeight.toInt())
+            buf.writeResourceKey(biome)
+            buf.writeByte(lightLevel.toInt())
+            buf.writeBoolean(glowing)
+
+            buf.writeInt(overlays.size)
+            overlays.forEach { it.write(buf) }
         }
     }
 
-    companion object {
+    companion object : XMMPPacketType<ChunkDataPacket>() {
         const val CHUNK_SIZE = 16
 
-        //? if >=1.20.5 {
-        val TYPE =
-            CustomPacketPayload.Type<ChunkDataPacket>(loc("chunk_data"))!!
+        override fun id() = loc("chunk_data")
 
-        val STREAM_CODEC: StreamCodec<FriendlyByteBuf, ChunkDataPacket> = StreamCodec.composite(
-            ByteBufCodecs.INT, ChunkDataPacket::chunkX,
-            ByteBufCodecs.INT, ChunkDataPacket::chunkZ,
-            TileData.STREAM_CODEC, ChunkDataPacket::tileData,
-            BlockData.CHUNK_BLOCKS_STREAM_CODEC, ChunkDataPacket::blocks,
-            ByteBufCodecs.STRING_UTF8, ChunkDataPacket::dimension,
-            ::ChunkDataPacket
-        )
-        //? } else {
-        /*fun decode(buf: FriendlyByteBuf) = ChunkDataPacket(
+        override fun decode(buf: FriendlyByteBuf) = ChunkDataPacket(
             buf.readInt(),
             buf.readInt(),
-            TileData.decode(buf),
-            BlockData.decodeArray(buf),
+            TileData.read(buf),
+            BlockData.readArray(buf),
             buf.readUtf()
         )
-        *///? }
+
+        override fun encode(buf: FriendlyByteBuf, packet: ChunkDataPacket) {
+            buf.writeInt(packet.chunkX)
+            buf.writeInt(packet.chunkZ)
+            packet.tileData.write(buf)
+            buf.writeInt(packet.blocks.size)
+            packet.blocks.forEach { it.write(buf) }
+            buf.writeUtf(packet.dimension)
+        }
     }
 
     init {
@@ -217,18 +130,8 @@ data class ChunkDataPacket(
         }
     }
 
-    //? if >=1.20.5 {
-    override fun type() = TYPE
-
-    //? } else {
-    /*fun encode(buf: FriendlyByteBuf) {
-        buf.writeInt(chunkX)
-        buf.writeInt(chunkZ)
-        TileData.encode(buf, tileData)
-        BlockData.encodeArray(buf, blocks)
-        buf.writeUtf(dimension)
-    }
-    *///? }
+    override val encode = Companion::encode
+    override val payloadType = Companion.payloadType
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -239,4 +142,5 @@ data class ChunkDataPacket(
 
     override fun hashCode() =
         Objects.hash(chunkX, chunkZ, blocks.contentHashCode(), tileData, dimension)
+
 }

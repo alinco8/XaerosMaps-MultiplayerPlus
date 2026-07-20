@@ -27,11 +27,11 @@ public class MapWorldMixin {
     )
     private void onXaeroDimensionChanged(CallbackInfo ci) {
         String currentDimension = this.currentDimensionId
-            //? if <26 {
-            .location()
-            //? } else {
+            //? if >=1.21.11 {
             /*.identifier()
-            *///? }
+            *///? } else {
+            .location()
+             //? }
             .toString();
         if (currentDimension.equals(xmmp$lastDimension)) return;
         xmmp$lastDimension = currentDimension;

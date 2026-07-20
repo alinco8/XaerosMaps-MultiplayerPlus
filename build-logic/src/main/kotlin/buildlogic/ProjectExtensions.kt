@@ -4,6 +4,18 @@ import org.gradle.api.Project
 import org.gradle.internal.extensions.core.extra
 import org.gradle.kotlin.dsl.dependencies
 
+fun Project.propList(key: String): List<String> {
+    val result = mutableListOf<String>()
+    var index = 0
+    while (true) {
+        val value = propOrNull("$key.$index") ?: break
+        result.add(value)
+        index++
+    }
+
+    return result
+}
+
 fun Project.propOrNull(key: String): String? =
     findProperty(key) as? String ?: System.getenv(key)
 
