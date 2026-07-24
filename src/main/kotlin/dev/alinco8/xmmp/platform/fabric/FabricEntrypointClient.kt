@@ -37,14 +37,14 @@ class FabricEntrypointClient : ClientModInitializer {
         listener: (T) -> Unit
     ) {
         //? if >=1.20.5 {
-        ClientPlayNetworking.registerGlobalReceiver(packetType.payloadType) { packet, _ ->
+        /*ClientPlayNetworking.registerGlobalReceiver(packetType.payloadType) { packet, _ ->
             listener(packet)
         }
-        //? } else {
-        /*ClientPlayNetworking.registerGlobalReceiver(packetType.id()) { _, _, buf, _ ->
+        *///? } else {
+        ClientPlayNetworking.registerGlobalReceiver(packetType.id()) { _, _, buf, _ ->
             listener(packetType.decode(buf))
         }
-        *///? }
+        //? }
     }
 }
 *///? }

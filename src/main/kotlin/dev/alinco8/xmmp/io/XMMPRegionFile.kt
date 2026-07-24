@@ -24,7 +24,7 @@ class XMMPRegionFile(path: Path) : Closeable {
         const val TS_TABLE_START = OFFSET_TABLE_START + CHUNK_COUNT * 4
         const val DATA_START = TS_TABLE_START + CHUNK_COUNT * 8
 
-        const val CURRENT_VERSION = 1
+        const val CURRENT_VERSION = 2
         const val SECTOR_SIZE = 4096
     }
 
@@ -37,7 +37,14 @@ class XMMPRegionFile(path: Path) : Closeable {
             raf.seek(FILE_VERSION_START.toLong())
 
             when (val version = raf.readInt()) {
-                1 -> {}
+                1 -> {
+                    raf.setLength(0)
+                    raf.setLength(DATA_START.toLong())
+                    raf.seek(FILE_VERSION_START.toLong())
+                    raf.writeInt(CURRENT_VERSION)
+                }
+
+                2 -> {}
                 else -> error("Unknown version $version")
             }
         }

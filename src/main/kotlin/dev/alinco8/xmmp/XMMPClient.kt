@@ -1,5 +1,13 @@
 package dev.alinco8.xmmp
 
+//? if >=1.21.11 {
+/*import net.minecraft.resources.Identifier
+
+*///? } else {
+import net.minecraft.resources.ResourceLocation as Identifier
+
+//? }
+
 import dev.alinco8.xmmp.XMMP.LOGGER
 import dev.alinco8.xmmp.config.XMMPConfig
 import dev.alinco8.xmmp.packet.C2SXaeroReadyPacket
@@ -12,7 +20,7 @@ import net.minecraft.world.level.ChunkPos
 import xaero.map.core.XaeroWorldMapCore
 
 object XMMPClient {
-    val chunkSendQueue = ChunkPosQueue<String>()
+    val chunkSendQueue = ChunkPosQueue<Identifier>()
     val chunkReceiveQueue = ChunkPosQueue<ChunkDataPacket>()
     var elapsedTicks = 0
 
@@ -51,9 +59,10 @@ object XMMPClient {
     @JvmStatic
     fun onWriteChunk(chunkX: Int, chunkZ: Int) {
         val dimensionId =
-            XaeroWorldMapCore.currentSession?.mapProcessor?.mapWorld?.currentDimensionId ?: return
+            XaeroWorldMapCore.currentSession?.mapProcessor?.mapWorld?.currentDimensionId?.id()
+                ?: return
 
-        chunkSendQueue.add(chunkX, chunkZ, dimensionId.toString())
+        chunkSendQueue.add(chunkX, chunkZ, dimensionId)
     }
 
     @JvmStatic
@@ -106,10 +115,10 @@ object XMMPClient {
         chunkSendQueue.sortByDistance(playerChunkPos.x, playerChunkPos.z)
 
         val currentDimensionId =
-            XaeroWorldMapCore.currentSession?.mapProcessor?.mapWorld?.currentDimensionId?.toString()
+            XaeroWorldMapCore.currentSession?.mapProcessor?.mapWorld?.currentDimensionId?.id()
                 ?: return
 
-        val requeueList = mutableListOf<ChunkPosQueue.Entry<String>>()
+        val requeueList = mutableListOf<ChunkPosQueue.Entry<Identifier>>()
         var packetsSent = 0
         while (packetsSent < config.chunkSendLimit) {
             val entry = chunkSendQueue.poll() ?: break
@@ -157,7 +166,8 @@ object XMMPClient {
         chunkReceiveQueue.sortByDistance(playerChunkPos.x, playerChunkPos.z)
 
         val currentDimensionId =
-            XaeroWorldMapCore.currentSession?.mapProcessor?.mapWorld?.currentDimensionId?.toString()
+            XaeroWorldMapCore.currentSession?.mapProcessor?.mapWorld?.currentDimensionId?.id()
+                ?.toString()
                 ?: return
 
         val requeueList = mutableListOf<ChunkPosQueue.Entry<ChunkDataPacket>>()

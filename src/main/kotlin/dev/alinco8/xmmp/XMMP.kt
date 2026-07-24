@@ -1,5 +1,13 @@
 package dev.alinco8.xmmp
 
+//? if >=1.21.11 {
+/*import net.minecraft.resources.Identifier
+
+*///? } else {
+import net.minecraft.resources.ResourceLocation as Identifier
+
+//? }
+
 import dev.alinco8.xmmp.config.XMMPConfig
 import dev.alinco8.xmmp.io.XMMPRegionCache
 import dev.alinco8.xmmp.packet.C2SChunkRowRequestPacket
@@ -15,7 +23,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -29,16 +36,8 @@ import net.minecraft.world.level.storage.LevelResource
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
-//? if >=1.21.11 {
-/*import net.minecraft.resources.Identifier
-
-*///? } else {
-import net.minecraft.resources.ResourceLocation as Identifier
-
-//? }
-
 internal fun ResourceKey<*>.id() =
-    /*?if >=1.21.11 {*/ /*this.identifier() *//*?} else {*/ this.location() /*?}*/
+        /*?if >=1.21.11 {*/ /*this.identifier() *//*?} else {*/ this.location() /*?}*/
 
 internal fun loc(path: String): Identifier =
 //? if forge || >=1.21 {

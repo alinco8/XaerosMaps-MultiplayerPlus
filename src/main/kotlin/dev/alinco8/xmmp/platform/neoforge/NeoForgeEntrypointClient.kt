@@ -31,7 +31,8 @@ class NeoForgeEntrypointClient(modContainer: ModContainer, modEventBus: IEventBu
             }
         )
 
-        modEventBus.register(ClientModEvents)
+        //? >=1.21.8
+        //modEventBus.register(ClientModEvents)
         NeoForge.EVENT_BUS.register(this)
     }
 

@@ -8,8 +8,8 @@ import net.fabricmc.fabric.api.entity.event.v1.ServerEntityWorldChangeEvents as 
 //? }
 
 //? if >=1.20.5 {
-import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry
-//? }
+/*import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry
+*///? }
 
 import dev.alinco8.xmmp.XMMP
 import dev.alinco8.xmmp.common.XMMPPacket
@@ -49,11 +49,11 @@ class FabricEntrypoint : ModInitializer {
             }
 
         //? if >=1.20.5 {
-        registerPacket(C2SChunkRowRequestPacket)
+        /*registerPacket(C2SChunkRowRequestPacket)
         registerPacket(C2SXaeroReadyPacket)
         registerPacket(ChunkDataPacket)
         registerPacket(S2CRegionTimestampsPacket)
-        //? }
+        *///? }
 
         registerCommonListener(C2SChunkRowRequestPacket) { packet, player ->
             XMMP.handleChunkRowRequestPacket(packet, player)
@@ -71,18 +71,18 @@ class FabricEntrypoint : ModInitializer {
         listener: (T, ServerPlayer) -> Unit
     ) {
         //? if >=1.20.5 {
-        ServerPlayNetworking.registerGlobalReceiver(packetType.payloadType) { packet, ctx ->
+        /*ServerPlayNetworking.registerGlobalReceiver(packetType.payloadType) { packet, ctx ->
             listener(packet, ctx.player())
         }
-        //? } else {
-        /*ServerPlayNetworking.registerGlobalReceiver(packetType.id()) { _, player, _, buf, _ ->
+        *///? } else {
+        ServerPlayNetworking.registerGlobalReceiver(packetType.id()) { _, player, _, buf, _ ->
             listener(packetType.decode(buf), player)
         }
-        *///? }
+        //? }
     }
 
     //? if >=1.20.5 {
-    private fun <T : XMMPPacket<T>> registerPacket(type: XMMPPacketType<T>) {
+    /*private fun <T : XMMPPacket<T>> registerPacket(type: XMMPPacketType<T>) {
         val codec = net.minecraft.network.codec.StreamCodec
             .of(type::encode, type::decode)
 
@@ -101,6 +101,6 @@ class FabricEntrypoint : ModInitializer {
             //? }
             .register(type.payloadType, codec)
     }
-    //? }
+    *///? }
 }
 *///? }

@@ -36,6 +36,12 @@ neoForge {
         create("client") {
             client()
             ideName = "${project().name} - Client"
+            programArguments.addAll("--username", "Dev")
+        }
+        create("client2") {
+            client()
+            ideName = "${project().name} - Client 2"
+            programArguments.addAll("--username", "Dev2")
         }
         create("server") {
             server();
@@ -81,6 +87,7 @@ dependencies {
         "ferrite-core",
         "modernfix",
         "badoptimizations",
+        "mcwifipnp"
     ).forEach {
         try {
             localRuntime(fletchingTable.modrinth(it))

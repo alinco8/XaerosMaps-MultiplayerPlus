@@ -46,6 +46,11 @@ loom {
             displayName = "${project.name} - Client"
             appendProjectPathToDisplayName = false
         }
+        create("client2") {
+            inherit(runs["client"])
+            programArguments.addAll("--username", "Dev2")
+            displayName = "${project.name} - Client 2"
+        }
         named("server") {
             displayName = "${project.name} - Server"
             appendProjectPathToDisplayName = false

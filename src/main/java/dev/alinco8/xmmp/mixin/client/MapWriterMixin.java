@@ -1,12 +1,19 @@
 package dev.alinco8.xmmp.mixin.client;
 
-import com.llamalad7.mixinextras.sugar.Local;
 import dev.alinco8.xmmp.XMMPClient;
+import net.minecraft.core.BlockPos.MutableBlockPos;
+import net.minecraft.core.Registry;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.biome.Biome;
+import net.minecraft.world.level.block.Block;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import xaero.map.MapWriter;
+import xaero.map.biome.BlockTintProvider;
+import xaero.map.region.MapUpdateFastConfig;
+import xaero.map.region.OverlayManager;
 
 @Mixin(value = MapWriter.class, remap = false)
 public class MapWriterMixin {
@@ -20,10 +27,13 @@ public class MapWriterMixin {
         )
     )
     private void onWriteChunk(
-        CallbackInfoReturnable<Boolean> cir,
-        @Local(argsOnly = true, name = "layerToWrite") int layerToWrite,
-        @Local(argsOnly = true, name = "chunkX") int chunkX,
-        @Local(argsOnly = true, name = "chunkZ") int chunkZ
+        Level world, Registry<Block> blockRegistry, int distance, boolean onlyLoad,
+        Registry<Biome> biomeRegistry, OverlayManager overlayManager, boolean loadChunks,
+        boolean updateChunks, boolean ignoreHeightmaps, boolean flowers, boolean detailedDebug,
+        MutableBlockPos mutableBlockPos3, BlockTintProvider blockTintProvider, int caveDepth,
+        int caveStart, int layerToWrite, int tileChunkX, int tileChunkZ, int tileChunkLocalX,
+        int tileChunkLocalZ, int chunkX, int chunkZ, MapUpdateFastConfig updateConfig,
+        CallbackInfoReturnable<Boolean> cir
     ) {
         if (layerToWrite != Integer.MAX_VALUE) return;
 

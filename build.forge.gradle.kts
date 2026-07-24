@@ -36,6 +36,12 @@ legacyForge {
         create("client") {
             client()
             ideName = "${project().name} - Client"
+            programArguments.addAll("--username", "Dev")
+        }
+        create("client2") {
+            client()
+            ideName = "${project().name} - Client 2"
+            programArguments.addAll("--username", "Dev2")
         }
         create("server") {
             server();
@@ -70,8 +76,21 @@ dependencies {
     compileOnly("com.electronwill.night-config:toml:${prop("libs.night_config")}")
 
     annotationProcessor("org.spongepowered:mixin:0.8.5:processor")
-    annotationProcessor("io.github.llamalad7:mixinextras-common:0.3.5")
-    compileOnly("io.github.llamalad7:mixinextras-common:0.3.5")
+
+    add(
+        "additionalRuntimeClasspath",
+        "io.github.llamalad7:mixinextras-forge:0.3.5"
+    )
+
+    listOf(
+        "mcwifipnp"
+    ).forEach {
+        try {
+            modRuntimeOnly(fletchingTable.modrinth(it))
+        } catch (_: NoSuchElementException) {
+            println("Mod '$it' not found in modrinth dependencies, skipping...")
+        }
+    }
 }
 
 mixin {
