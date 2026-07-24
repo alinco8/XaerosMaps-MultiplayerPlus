@@ -24,8 +24,8 @@ night_config = "3.9.0"
 zstd = "1.5.7-9"
 
 [deps]
-xaero_minimap = { version = "26.1.0", range = ["25"] }
-xaero_world_map = { version = "1.41.2", range = ["1.40"] }
+xaero_minimap = { version = "26.4.2", range = ["25"] }
+xaero_world_map = { version = "1.44.2", range = ["1.40"] }
 xaero_lib = { version = "1.1.15", range = ["1.0"] }
 
 [fabric.deps]

@@ -255,7 +255,13 @@ object XaeroMapUtils {
                 tile.setWrittenOnce(true)
                 tile.setWrittenCave(Int.MAX_VALUE, 0)
 
-                tileChunk.setTile(tileX, tileZ, tile, processor.blockStateShortShapeCache)
+                tileChunk.setTile(
+                    tileX,
+                    tileZ,
+                    tile,
+                    processor.blockStateShortShapeCache,
+                    processor
+                )
 
                 tileChunk.setChanged(true)
                 tileChunk.toUpdateBuffers = true
