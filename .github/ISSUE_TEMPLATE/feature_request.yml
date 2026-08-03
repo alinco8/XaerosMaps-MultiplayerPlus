@@ -1,0 +1,61 @@
+name: Feature Request
+description: Suggest a new feature
+labels: [ "Status: Todo", "Type: Feature" ]
+assignees: [ "alinco8" ]
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the feature request.
+        Please be as specific as possible so the request can be evaluated and implemented correctly.
+
+  - type: checkboxes
+    id: preflight
+    attributes:
+      label: Pre-flight checklist
+      description: Please confirm the following before submitting.
+      options:
+        - label: I have searched the existing issues to make sure this is not a duplicate.
+          required: true
+        - label: I confirmed this is not already implemented in the latest version.
+          required: true
+
+  - type: textarea
+    id: feature_description
+    attributes:
+      label: Feature summary
+      description: Describe the feature you would like to see implemented.
+      placeholder: e.g. I'd like to be able to...
+    validations:
+      required: true
+
+  - type: textarea
+    id: use_case
+    attributes:
+      label: Use case / motivation
+      description: Explain when you would use this feature and why it would be helpful.
+      placeholder: e.g. This would help me by...
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution (optional)
+      description: If you have an idea of how it could work (UI, behavior, settings, etc.), write it here.
+      placeholder: e.g. Add a setting called "..." that does ...
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives (optional)
+      description: Any alternative approaches or workarounds you’ve tried.
+      placeholder: e.g. I currently work around this by...
+
+  - type: textarea
+    id: additional_information
+    attributes:
+      label: Additional information (optional)
+      description: Provide any other context or references (links, screenshots, related mods, etc.).
+      placeholder: Additional details...

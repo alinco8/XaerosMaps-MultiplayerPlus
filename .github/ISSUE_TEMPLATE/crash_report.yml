@@ -1,0 +1,88 @@
+name: Crash Report
+description: The game crashed or failed to start
+labels: [ "Status: Todo", "Type: Crash" ]
+assignees: [ "alinco8" ]
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a crash.
+        Please include the full crash report (preferred) or a link to it so the cause can be identified quickly.
+
+  - type: checkboxes
+    id: preflight
+    attributes:
+      label: Pre-flight checklist
+      description: Please confirm the following before submitting.
+      options:
+        - label: I have searched the existing issues to make sure this is not a duplicate.
+          required: true
+        - label: I confirmed this is not already fixed in the latest version.
+          required: true
+
+  - type: textarea
+    id: crash_log
+    attributes:
+      label: Crash report / error log
+      description: Paste the full crash report (preferred) or error message. For large logs, upload to mclo.gs and paste the link.
+      placeholder: Paste your crash report or mclo.gs link here...
+      render: shell
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps_to_reproduce
+    attributes:
+      label: Steps to reproduce
+      description: If you know how to reproduce it, provide steps. Otherwise, write "Unknown".
+      placeholder: |
+        1. ...
+        2. ...
+        3. ...
+    validations:
+      required: true
+
+  - type: input
+    id: minecraft_version
+    attributes:
+      label: Minecraft version
+      description: The Minecraft version you are using.
+      placeholder: 1.21.1
+    validations:
+      required: true
+
+  - type: input
+    id: mod_version
+    attributes:
+      label: Mod version
+      description: The version of this mod you are using.
+      placeholder: 1.2.3
+    validations:
+      required: true
+
+  - type: input
+    id: loader_info
+    attributes:
+      label: Mod loader and it's version
+      description: The mod loader you are using (e.g., NeoForge, Forge, Fabric) and its version.
+      placeholder: e.g. NeoForge 21.1.x / Forge 47.3.x / Fabric Loader 0.16.x
+    validations:
+      required: true
+
+  - type: textarea
+    id: other_mods
+    attributes:
+      label: Other mods
+      description: List other mods that might be relevant (or write "None/Unknown").
+      placeholder: Xaero's Minimap v21.6.0, Xaero's World Map v1.9.6, ...
+      render: text
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional_information
+    attributes:
+      label: Additional information (optional)
+      description: Provide any other context or references (links, screenshots, related mods, etc.).
+      placeholder: Additional details...
