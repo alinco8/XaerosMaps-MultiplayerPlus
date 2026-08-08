@@ -1,4 +1,4 @@
-package dev.alinco8.xmmp.mixin.client;
+package dev.alinco8.xmmp.mixin.client.compat.xaeroworldmap;
 
 import dev.alinco8.xmmp.XMMPClient;
 import net.minecraft.resources.ResourceKey;

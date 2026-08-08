@@ -28,12 +28,12 @@ versionRange = "${deps.kff.range | versionRange}"
 
 [[dependencies.${ mod.id }]]
 modId = "xaeroworldmap"
-mandatory = true
+mandatory = false
 versionRange = "${deps.xaero_world_map.range | versionRange}"
 
 [[dependencies.${ mod.id }]]
 modId = "xaerominimap"
-mandatory = true
+mandatory = false
 versionRange = "${deps.xaero_minimap.range | versionRange}"
 
 [[dependencies.${ mod.id }]]

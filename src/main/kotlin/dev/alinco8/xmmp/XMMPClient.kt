@@ -15,6 +15,7 @@ import dev.alinco8.xmmp.packet.ChunkDataPacket
 import dev.alinco8.xmmp.packet.S2CRegionTimestampsPacket
 import dev.alinco8.xmmp.sync.ChunkPosQueue
 import dev.alinco8.xmmp.sync.RegionSyncProcessor
+import dev.alinco8.xmmp.utils.ModList
 import net.minecraft.client.Minecraft
 import net.minecraft.world.level.ChunkPos
 import xaero.map.core.XaeroWorldMapCore
@@ -24,6 +25,10 @@ object XMMPClient {
     val chunkReceiveQueue = ChunkPosQueue<ChunkDataPacket>()
     var elapsedTicks = 0
 
+    val isWorldMapLoaded by lazy {
+        ModList.isModLoaded("xaeroworldmap")
+    }
+
     const val PURGE_COOLDOWN_TICKS = 1200
 
     fun onInitializeClient() {
@@ -31,6 +36,10 @@ object XMMPClient {
     }
 
     fun onTickEnd() {
+        if (isWorldMapLoaded) onTickWithWorldMap()
+    }
+
+    private fun onTickWithWorldMap() {
         val player = Minecraft.getInstance().player ?: return
         val playerChunkPos = player.chunkPosition()
 
@@ -75,10 +84,14 @@ object XMMPClient {
     }
 
     fun handleChunkDataPacket(packet: ChunkDataPacket) {
+        if (!isWorldMapLoaded) return
+
         chunkReceiveQueue.add(packet.chunkX, packet.chunkZ, packet)
     }
 
     fun handleRegionTimestampsPacket(packet: S2CRegionTimestampsPacket) {
+        if (!isWorldMapLoaded) return
+
         LOGGER.debug("Received region timestamps from server: {}", packet.timestamps)
 
         for ((packed, ts) in packet.timestamps) {

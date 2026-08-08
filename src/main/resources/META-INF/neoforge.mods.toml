@@ -39,12 +39,12 @@ side = "BOTH"
 
 [[dependencies.${ mod.id }]]
 modId = "xaeroworldmap"
-type = "required"
+type = "optional"
 versionRange = "${deps.xaero_world_map.range | versionRange}"
 
 [[dependencies.${ mod.id }]]
 modId = "xaerominimap"
-type = "required"
+type = "optional"
 versionRange = "${deps.xaero_minimap.range | versionRange}"
 
 [[dependencies.${ mod.id }]]

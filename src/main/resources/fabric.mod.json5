@@ -42,8 +42,10 @@
     "fabric-api": "${deps.fabric_api.range | versionRange}",
     minecraft: "${deps.minecraft.range | versionRange}",
     java: "${deps.java.range | versionRange}",
-    xaerominimap: "${deps.xaero_minimap.range | versionRange}",
-    xaeroworldmap: "${deps.xaero_world_map.range | versionRange}",
     yet_another_config_lib_v3: "${deps.yacl.range | versionRange}"
+  },
+  suggests: {
+    xaerominimap: "${deps.xaero_minimap.range | versionRange}",
+    xaeroworldmap: "${deps.xaero_world_map.range | versionRange}"
   }
 }

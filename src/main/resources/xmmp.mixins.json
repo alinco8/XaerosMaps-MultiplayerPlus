@@ -2,6 +2,7 @@
   "required": true,
   "package": "dev.alinco8.xmmp.mixin.client",
   "compatibilityLevel": "JAVA_${deps.java.version}",
+  "plugin": "dev.alinco8.xmmp.mixin.MixinPlugin",
   "client": [],
   "injectors": {
     "defaultRequire": 1

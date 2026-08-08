@@ -1,7 +1,7 @@
 package dev.alinco8.xmmp
 
 import dev.alinco8.xmmp.XMMP.LOGGER
-import dev.alinco8.xmmp.mixin.client.MapPixelAccessor
+import dev.alinco8.xmmp.mixin.client.compat.xaeroworldmap.MapPixelAccessor
 import dev.alinco8.xmmp.packet.ChunkDataPacket
 import net.minecraft.client.Minecraft
 import xaero.map.MapProcessor

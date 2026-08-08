@@ -32,7 +32,9 @@ in `config/xaero/lib/common.cfg`)
 
 ### Planned
 
-- Waypoint sets that are automatically shared with other players
+- Waypoint set sync (additions/deletions automatically synced between players)
+- Direct waypoint sharing (via in-game chat, or copy-paste for sharing outside Minecraft)
+- Server-managed waypoint sets (waypoints controlled by the server)
 
 Suggestions for other features are very welcome!
 

@@ -1,4 +1,4 @@
-package dev.alinco8.xmmp.mixin.client;
+package dev.alinco8.xmmp.mixin.client.compat.xaeroworldmap;
 
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
