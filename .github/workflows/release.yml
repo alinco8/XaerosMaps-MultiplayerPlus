@@ -13,6 +13,7 @@ jobs:
       next_version: ${{ steps.check-version.outputs.next_version }}
       release_notes: ${{ steps.check-version.outputs.release_notes }}
       versions: ${{ steps.check-version.outputs.versions }}
+      vcs: ${{ steps.check-version.outputs.vcs }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -43,6 +44,9 @@ jobs:
           versions=$(jq -c '.versions | map(split(":") | { node: .[0], mc: .[1] })' versions.json)
           echo "Building with versions: $versions"
           echo "versions=$versions" >> $GITHUB_OUTPUT
+          
+          vcs=$(jq -r '.vcs // (.versions[0] | split(":")[0])' versions.json)
+          echo "vcs=$vcs" >> $GITHUB_OUTPUT
 
           delimiter="EOF_$(openssl rand -hex 8)"
           {
@@ -59,7 +63,6 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: true
-      max-parallel: 5
       matrix:
         include: ${{ fromJSON(needs.check-version.outputs.versions) }}
     steps:
@@ -69,6 +72,8 @@ jobs:
           distribution: temurin
           java-version: '25'
       - uses: gradle/actions/setup-gradle@v6
+        with:
+          cache-read-only: ${{ matrix.node != needs.check-version.outputs.vcs }}
       - uses: actions/download-artifact@v8
         with:
           name: properties
