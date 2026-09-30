@@ -23,18 +23,8 @@ plugins {
 
 stonecutter {
     create(rootProject) {
-        fun mc(version: String, vararg loaders: String) = loaders.forEach {
-            version("$version-$it", version).buildscript("build.$it.gradle.kts")
-        }
-
-        mc("1.20.1", "forge", "fabric") // 1.20~1.20.4
-        mc("1.20.5", "fabric"/*, "forge"*/) // 1.20.5~1.20.6, there is no yacl for forge 1.20.5
-        mc("1.21.1", "neoforge", "fabric") // 1.21~1.21.7
-        mc("1.21.8", "neoforge", "fabric") // 1.21.8~1.21.10
-        mc("1.21.11", "neoforge", "fabric") // 1.21.11
-        mc("26.1.2", "neoforge", "fabric") // 26.1~26.2
-        mc("26.2", "neoforge", "fabric") // 26.2~
-
+        mapBuilds { _, node -> "build.${node.project.substringAfterLast('-')}.gradle.kts" }
+        load(file("versions.json"))
         vcsVersion = "1.21.1-neoforge"
     }
 }
