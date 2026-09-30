@@ -79,13 +79,10 @@ tasks {
 publishMods {
     val prebuilt = propOrNull("PREBUILT_DIR")
     if (prebuilt != null) {
-        file = File(prebuilt, loomx.modJar.get().archiveFileName.get())
-        additionalFiles.from(
-            File(
-                prebuilt,
-                loomx.modSourcesJar.get().archiveFileName.get()
-            )
-        )
+        file = loomx.modJar.flatMap { it.archiveFileName }.map { File(prebuilt, it) }
+        additionalFiles.from(loomx.modSourcesJar.flatMap { it.archiveFileName }.map {
+            File(prebuilt, it)
+        })
     } else {
         file = loomx.modJar.map { it.archiveFile.get() }
         additionalFiles.from(loomx.modSourcesJar.map { it.archiveFile.get() })

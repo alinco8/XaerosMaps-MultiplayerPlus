@@ -114,13 +114,10 @@ tasks {
 publishMods {
     val prebuilt = propOrNull("PREBUILT_DIR")
     if (prebuilt != null) {
-        file = File(prebuilt, tasks.jar.get().archiveFileName.get())
-        additionalFiles.from(
-            File(
-                prebuilt,
-                tasks.named<Jar>("sourcesJar").get().archiveFileName.get()
-            )
-        )
+        file = tasks.jar.flatMap { it.archiveFileName }.map { File(prebuilt, it) }
+        additionalFiles.from(tasks.named<Jar>("sourcesJar").flatMap { it.archiveFileName }.map {
+            File(prebuilt, it)
+        })
     } else {
         file = tasks.jar.map { it.archiveFile.get() }
         additionalFiles.from(tasks.named<Jar>("sourcesJar").map { it.archiveFile.get() })
