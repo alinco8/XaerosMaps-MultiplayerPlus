@@ -1,7 +1,7 @@
 {
   schemaVersion: 1,
   id: "${mod.id}",
-  version: "${mod.version}",
+  version: "${mod.version}+${env.minecraft}-${env.loader}",
   name: "${mod.name}",
   description: "${mod.description}",
   authors: [
@@ -12,6 +12,7 @@
   environment: "*",
   //? if <26 {
   accessWidener: "${mod.id}-named.aw",
+  
   //? }
   entrypoints: {
     main: [

@@ -1,4 +1,5 @@
 import buildlogic.prop
+import buildlogic.propOrNull
 import buildlogic.strictMaven
 
 plugins {
@@ -32,6 +33,13 @@ dependencies {
 
     include(implementation("com.electronwill.night-config:toml:${prop("libs.night_config")}")!!)
     include(implementation("com.electronwill.night-config:core:${prop("libs.night_config")}")!!)
+
+    listOf("spark", "sodium", "ferrite-core", "modern-fix", "lithium").forEach {
+        try {
+            modLocalRuntime(fletchingTable.modrinth(it, minecraft, loader))
+        } catch (_: Exception) {
+        }
+    }
 }
 
 loom {
@@ -58,7 +66,6 @@ loom {
 
         configureEach {
             generateRunConfig = true
-//            vmArgs("-Dsodium.checks.issue2561=false")
         }
     }
 }
@@ -67,14 +74,22 @@ tasks {
     named<ProcessResources>("processResources") {
         exclude("META-INF/neoforge.mods.toml", "META-INF/mods.toml")
     }
-    named<Copy>("buildAndCollect") {
-        from(loomx.modJar.map { it.archiveFile }, loomx.modSourcesJar.map { it.archiveFile })
-    }
 }
 
 publishMods {
-    file = loomx.modJar.map { it.archiveFile.get() }
-    additionalFiles.from(loomx.modSourcesJar.map { it.archiveFile.get() })
+    val prebuilt = propOrNull("PREBUILT_DIR")
+    if (prebuilt != null) {
+        file = File(prebuilt, loomx.modJar.get().archiveFileName.get())
+        additionalFiles.from(
+            File(
+                prebuilt,
+                loomx.modSourcesJar.get().archiveFileName.get()
+            )
+        )
+    } else {
+        file = loomx.modJar.map { it.archiveFile.get() }
+        additionalFiles.from(loomx.modSourcesJar.map { it.archiveFile.get() })
+    }
 
     val slugs = listOf("fabric-api", "fabric-language-kotlin")
     val optionalSlugs = listOf("modmenu")

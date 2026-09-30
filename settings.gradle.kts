@@ -1,7 +1,6 @@
 @file:Suppress("UnstableApiUsage")
 
-// The project name cannot contain the character ':'
-rootProject.name = "Xaero's Maps Multiplayer+"
+rootProject.name = "Xaeros Maps Multiplayer"
 includeBuild("build-logic")
 
 pluginManagement {
@@ -34,6 +33,7 @@ stonecutter {
         mc("1.21.8", "neoforge", "fabric") // 1.21.8~1.21.10
         mc("1.21.11", "neoforge", "fabric") // 1.21.11
         mc("26.1.2", "neoforge", "fabric") // 26.1~26.2
+        mc("26.2", "neoforge", "fabric") // 26.2~
 
         vcsVersion = "1.21.1-neoforge"
     }

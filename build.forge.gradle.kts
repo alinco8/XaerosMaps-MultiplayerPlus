@@ -2,11 +2,12 @@
 
 import buildlogic.ifProp
 import buildlogic.prop
+import buildlogic.propOrNull
 import buildlogic.strictMaven
 import org.slf4j.event.Level
 
 plugins {
-    id("net.neoforged.moddev.legacyforge") version "2.0.141"
+    id("net.neoforged.moddev.legacyforge") version "2.0.148"
     id("dev.kikugie.fletching-table.lexforge")
     id("me.modmuss50.mod-publish-plugin")
     id("project.common")
@@ -77,10 +78,16 @@ dependencies {
 
     annotationProcessor("org.spongepowered:mixin:0.8.5:processor")
 
-    add(
-        "additionalRuntimeClasspath",
-        "io.github.llamalad7:mixinextras-forge:0.3.5"
-    )
+    compileOnly("io.github.llamalad7:mixinextras-common:0.5.5")
+    annotationProcessor("io.github.llamalad7:mixinextras-common:0.5.5")
+
+    jarJar("io.github.llamalad7:mixinextras-forge:0.5.5") {
+        version {
+            strictly("[0.5.5,)")
+            prefer("0.5.5")
+        }
+    }
+    implementation("io.github.llamalad7:mixinextras-forge:0.5.5")
 
     listOf(
         "mcwifipnp"
@@ -106,9 +113,6 @@ tasks {
     named<ProcessResources>("processResources") {
         exclude("fabric.mod.json5", "META-INF/neoforge.mods.toml")
     }
-    named<Copy>("buildAndCollect") {
-        from(reobfJar.map { it.archiveFile }, sourcesJar.map { it.archiveFile })
-    }
     named<Jar>("jar") {
         manifest {
             attributes(
@@ -119,8 +123,19 @@ tasks {
 }
 
 publishMods {
-    file = reobfJar.map { it.archiveFile.get() }
-    additionalFiles.from(tasks.named<Jar>("sourcesJar").map { it.archiveFile.get() })
+    val prebuilt = propOrNull("PREBUILT_DIR")
+    if (prebuilt != null) {
+        file = File(prebuilt, reobfJar.get().archiveFileName.get())
+        additionalFiles.from(
+            File(
+                prebuilt,
+                tasks.named<Jar>("sourcesJar").get().archiveFileName.get()
+            )
+        )
+    } else {
+        file = reobfJar.map { it.archiveFile.get() }
+        additionalFiles.from(tasks.named<Jar>("sourcesJar").map { it.archiveFile.get() })
+    }
 
     val slugs = listOf("kotlin-for-forge")
 

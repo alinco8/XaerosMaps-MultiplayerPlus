@@ -3,7 +3,7 @@ plugins {
     id("project.base")
 }
 
-stonecutter active rootProject.file("versions/active.txt")
+stonecutter active rootProject.file("active.txt")
 
 stonecutter parameters {
     val (version, loader) = current.project.split("-", limit = 2)

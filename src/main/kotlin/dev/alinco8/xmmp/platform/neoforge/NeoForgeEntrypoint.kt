@@ -1,158 +1,154 @@
 //? if neoforge {
 package dev.alinco8.xmmp.platform.neoforge
 
-//? if <1.21.8 {
+//? <1.21.8
 import net.neoforged.neoforge.network.handling.DirectionalPayloadHandler
-//? }
 
 import dev.alinco8.xmmp.XMMP
-import dev.alinco8.xmmp.XMMPClient
-import dev.alinco8.xmmp.common.XMMPPacket
-import dev.alinco8.xmmp.common.XMMPPacketType
-import dev.alinco8.xmmp.packet.C2SChunkRowRequestPacket
-import dev.alinco8.xmmp.packet.C2SXaeroReadyPacket
-import dev.alinco8.xmmp.packet.ChunkDataPacket
-import dev.alinco8.xmmp.packet.S2CRegionTimestampsPacket
-import net.minecraft.network.codec.StreamCodec
-import net.neoforged.bus.api.IEventBus
-import net.neoforged.bus.api.SubscribeEvent
+import dev.alinco8.xmmp.common.CommonEvents
+import dev.alinco8.xmmp.common.ServerEvents
 import net.neoforged.fml.common.Mod
 import net.neoforged.neoforge.common.NeoForge
-import net.neoforged.neoforge.event.entity.player.PlayerEvent
-import net.neoforged.neoforge.event.server.ServerStartingEvent
+import net.neoforged.neoforge.event.server.ServerStartedEvent
 import net.neoforged.neoforge.event.server.ServerStoppedEvent
+import net.neoforged.neoforge.event.entity.player.PlayerEvent
+import dev.alinco8.xmmp.network.XMMPPacket
+import net.minecraft.commands.CommandSourceStack
+import net.minecraft.network.codec.StreamCodec
+import net.minecraft.server.MinecraftServer
+import net.minecraft.server.level.ServerPlayer
+import net.neoforged.neoforge.event.RegisterCommandsEvent
+import net.neoforged.neoforge.event.tick.ServerTickEvent
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent
-import net.neoforged.neoforge.network.handling.IPayloadHandler
 import net.neoforged.neoforge.network.registration.PayloadRegistrar
+import thedarkcolour.kotlinforforge.neoforge.forge.MOD_BUS
+import com.mojang.brigadier.CommandDispatcher
+import dev.alinco8.xmmp.server.XMMPServer
 
 @Mod(XMMP.MOD_ID)
-class NeoForgeEntrypoint(modEventBus: IEventBus) {
+class NeoForgeEntrypoint : CommonEvents, ServerEvents {
     init {
-        XMMP.onInitialize()
-
-        modEventBus.register(ModEvents)
-        NeoForge.EVENT_BUS.register(this)
+        XMMP.onInitialize(this)
+        XMMPServer.onInitializeServer(this)
     }
 
-    object ModEvents {
-        @SubscribeEvent
-        fun onRegisterPayloadHandlers(e: RegisterPayloadHandlersEvent) {
-            val registrar = e.registrar("1");
-
-            //? if >=1.21.8 {
-            /*registrar.registerBidirectional(
-                ChunkDataPacket,
-                { packet, ctx ->
-                    XMMP.handleChunkDataPacket(packet, ctx.player())
-                }
-            )
-            *///? } else {
-            registrar.registerBidirectional(
-                ChunkDataPacket,
-                { packet, _ ->
-                    XMMPClient.handleChunkDataPacket(packet)
-                },
-                { packet, ctx ->
-                    XMMP.handleChunkDataPacket(packet, ctx.player())
-                }
-            )
-            //? }
-
-            registrar.registerToServer(
-                C2SXaeroReadyPacket,
-                { packet, ctx ->
-                    XMMP.handleXaeroReadyPacket(packet, ctx.player())
-                }
-            )
-
-            registrar.registerToServer(
-                C2SChunkRowRequestPacket,
-                { packet, ctx ->
-                    XMMP.handleChunkRowRequestPacket(packet, ctx.player())
-                }
-            )
-
-            registrar.registerToClient(
-                S2CRegionTimestampsPacket,
-                { packet, _ ->
-                    XMMPClient.handleRegionTimestampsPacket(packet)
-                }
-            )
+    override fun registerCommands(callback: (dispatcher: CommandDispatcher<CommandSourceStack>) -> Unit) {
+        NeoForge.EVENT_BUS.addListener<RegisterCommandsEvent> { e ->
+            callback(e.dispatcher)
         }
     }
 
-    @SubscribeEvent
-    fun onServerStarted(e: ServerStartingEvent) {
-        XMMP.onServerStarted(e.server)
+    override fun registerServerStarted(callback: (server: MinecraftServer) -> Unit) {
+        NeoForge.EVENT_BUS.addListener<ServerStartedEvent> { e ->
+            callback(e.server)
+        }
     }
 
-    @SubscribeEvent
-    fun onServerStopped(
-        @Suppress("UNUSED_PARAMETER") e: ServerStoppedEvent,
+    override fun registerTickPost(callback: () -> Unit) {
+        NeoForge.EVENT_BUS.addListener<ServerTickEvent.Post> { _ ->
+            callback()
+        }
+    }
+
+    override fun registerServerStopped(callback: () -> Unit) {
+        NeoForge.EVENT_BUS.addListener<ServerStoppedEvent> {
+            callback()
+        }
+    }
+
+    override fun registerPlayerChannelsReady(callback: (player: ServerPlayer) -> Unit) {}
+
+    override fun registerPlayerJoin(callback: (player: ServerPlayer) -> Unit) {
+        NeoForge.EVENT_BUS.addListener<PlayerEvent.PlayerLoggedInEvent> { e ->
+            callback(e.entity as ServerPlayer)
+        }
+    }
+
+    override fun registerPlayerChangedDimension(
+        callback: (player: ServerPlayer) -> Unit,
     ) {
-        XMMP.onServerStopping()
+        NeoForge.EVENT_BUS.addListener<PlayerEvent.PlayerChangedDimensionEvent> { e ->
+            callback(e.entity as ServerPlayer)
+        }
     }
 
-    @SubscribeEvent
-    fun onPlayerDimensionChange(
-        e: PlayerEvent.PlayerChangedDimensionEvent
+    override fun registerPlayerLeave(callback: (player: ServerPlayer) -> Unit) {
+        NeoForge.EVENT_BUS.addListener<PlayerEvent.PlayerLoggedOutEvent> { e ->
+            callback(e.entity as ServerPlayer)
+        }
+    }
+
+    override fun registerPackets(
+        version: String,
+        callback: (CommonEvents.PacketRegistry) -> Unit,
     ) {
-        XMMP.onPlayerDimensionChange(e.entity)
+        MOD_BUS.addListener<RegisterPayloadHandlersEvent> { e ->
+            callback(PacketRegistry(e.registrar(version).optional()))
+        }
     }
 
-    @SubscribeEvent
-    fun onPlayerLeaveWorld(
-        e: PlayerEvent.PlayerLoggedOutEvent
-    ) {
-        XMMP.onPlayerLeave(e.entity)
+    class PacketRegistry(private val registrar: PayloadRegistrar) : CommonEvents.PacketRegistry {
+        override fun <T : XMMPPacket<T>> registerToServer(
+            packetType: XMMPPacket.Type<T>,
+            handler: CommonEvents.ServerPacketHandler<T>,
+        ) {
+            registrar.playToServer(
+                packetType.payloadType,
+                StreamCodec.of(
+                    packetType.codec::encode,
+                    packetType.codec::decode
+                )
+            ) { packet, ctx ->
+                handler(packet, ctx.player() as ServerPlayer)
+            }
+        }
+
+        override fun <T : XMMPPacket<T>> registerToClient(
+            packetType: XMMPPacket.Type<T>,
+            handler: CommonEvents.ClientPacketHandler<T>,
+        ) {
+            registrar.playToClient(
+                packetType.payloadType,
+                StreamCodec.of(
+                    packetType.codec::encode,
+                    packetType.codec::decode
+                ),
+                { packet, _ ->
+                    handler(packet)
+                }
+            )
+        }
+
+        override fun <T : XMMPPacket<T>> registerBidirectional(
+            packetType: XMMPPacket.Type<T>,
+            serverHandler: CommonEvents.ServerPacketHandler<T>,
+            clientHandler: CommonEvents.ClientPacketHandler<T>,
+        ) {
+            registrar.playBidirectional(
+                packetType.payloadType,
+                StreamCodec.of(
+                    packetType.codec::encode,
+                    packetType.codec::decode
+                ),
+                //? if >=1.21.8 {
+                /*{ packet, ctx ->
+                    serverHandler(packet, ctx.player() as ServerPlayer)
+                },
+                { packet, _ ->
+                    clientHandler(packet)
+                },
+                *///? } else {
+                DirectionalPayloadHandler(
+                    { packet, ctx ->
+                        serverHandler(packet, ctx.player() as ServerPlayer)
+                    },
+                    { packet, _ ->
+                        clientHandler(packet)
+                    }
+                )
+                //? }
+            )
+        }
     }
 }
-
-//? if >=1.21.8 {
-/*private fun <T : XMMPPacket<T>> PayloadRegistrar.registerBidirectional(
-    packet: XMMPPacketType<T>,
-    serverHandler: IPayloadHandler<T>,
-) {
-    this.playBidirectional(
-        packet.payloadType,
-        StreamCodec.of(packet::encode, packet::decode),
-        serverHandler
-    )
-}
-*///? } else {
-private fun <T : XMMPPacket<T>> PayloadRegistrar.registerBidirectional(
-    packet: XMMPPacketType<T>,
-    clientHandler: IPayloadHandler<T>,
-    serverHandler: IPayloadHandler<T>,
-) {
-    this.playBidirectional(
-        packet.payloadType,
-        StreamCodec.of(packet::encode, packet::decode),
-        DirectionalPayloadHandler(clientHandler, serverHandler)
-    )
-}
-//? }
-
-private fun <T : XMMPPacket<T>> PayloadRegistrar.registerToServer(
-    packet: XMMPPacketType<T>,
-    serverHandler: IPayloadHandler<T>,
-) {
-    this.playToServer(
-        packet.payloadType,
-        StreamCodec.of(packet::encode, packet::decode),
-        serverHandler
-    )
-}
-
-private fun <T : XMMPPacket<T>> PayloadRegistrar.registerToClient(
-    packet: XMMPPacketType<T>,
-    clientHandler: IPayloadHandler<T>,
-) {
-    this.playToClient(
-        packet.payloadType,
-        StreamCodec.of(packet::encode, packet::decode),
-        clientHandler
-    )
-}
-
 //? }

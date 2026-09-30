@@ -54,9 +54,7 @@ fletchingTable {
 
     mixins {
         create("main") {
-            mixin("default", "xmmp.mixins.json") {
-                env("CLIENT")
-            }
+            mixin("default", "xmmp.mixins.json")
         }
     }
 }
@@ -138,19 +136,12 @@ tasks {
     named("sourcesJar") {
         dependsOn(named("stonecutterGenerate"))
     }
-    register<Copy>("buildAndCollect") {
-        dependsOn(named("build"))
-        group = "build"
-        into(rootProject.layout.buildDirectory.file("libs"))
-    }
 }
 
 publishMods {
-    dryRun = propOrNull("DRY_RUN")?.toBoolean() ?: true
-
     type = STABLE
     version = project.version.toString()
-    changelog = propOrNull("CHANGELOG") ?: "No changelog provided."
+    changelog = propOrNull("RELEASE_NOTES") ?: "No release notes provided."
     modLoaders.add(loader)
 
     displayName = "${prop("mod.version")} for $loader $minecraft"
@@ -167,7 +158,7 @@ publishMods {
             accessToken = it
             minecraftVersions.addAll(mcVersions)
 
-            CLIENT_AND_SERVER
+            environment = SERVER_ONLY_CLIENT_OPTIONAL
 
             slugs.forEach(::requires)
         }

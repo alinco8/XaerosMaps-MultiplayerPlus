@@ -9,7 +9,7 @@ pre-push:
 pre-commit:
   jobs:
     - run: |
-        ACTIVE_VERSION=$(cat versions/active.txt)
+        ACTIVE_VERSION=$(cat active.txt)
         if [[ "$ACTIVE_VERSION" != "1.21.1-neoforge" ]]; then
           echo "Active version is $ACTIVE_VERSION, expected 1.21.1-neoforge"
           exit 1

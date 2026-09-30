@@ -1,0 +1,126 @@
+name: Release
+on:
+  workflow_dispatch:
+concurrency:
+  group: release
+  cancel-in-progress: false
+permissions:
+  contents: read
+jobs:
+  check-version:
+    runs-on: ubuntu-latest
+    outputs:
+      next_version: ${{ steps.check-version.outputs.next_version }}
+      release_notes: ${{ steps.check-version.outputs.release_notes }}
+      versions: ${{ steps.check-version.outputs.versions }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: cargo-bins/cargo-binstall@main
+      - run: cargo-binstall --no-confirm git-cliff tomato-toml
+      - id: check-version
+        #language=bash
+        run: |
+          current_version=$(tomato get mod.version stonecutter.properties.toml)
+          next_version=$(git-cliff --bumped-version)
+          next_version=${next_version#v}
+          
+          if [ "$current_version" = "$next_version" ]; then
+            echo "No new version detected. ($current_version)"
+            exit 1
+          fi
+          
+          if git rev-parse -q --verify "refs/tags/v$next_version" >/dev/null; then
+            echo "Tag v$next_version already exists."
+            exit 1
+          fi
+          
+          echo "New version detected: $next_version"
+          echo "next_version=$next_version" >> $GITHUB_OUTPUT
+          tomato set mod.version "$next_version" stonecutter.properties.toml
+          
+          versions=$(ls versions | jq -R . | jq -sc .)
+          echo "Building with versions: $versions"
+          echo "versions=$versions" >> $GITHUB_OUTPUT
+
+          delimiter="EOF_$(openssl rand -hex 8)"
+          {
+            echo "release_notes<<$delimiter"
+            git-cliff --unreleased --strip all
+            echo "$delimiter"
+          } >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: properties
+          path: stonecutter.properties.toml
+  build:
+    needs: check-version
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      max-parallel: 5
+      matrix:
+        node: ${{ fromJSON(needs.check-version.outputs.versions) }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '25'
+      - uses: gradle/actions/setup-gradle@v6
+      - uses: actions/download-artifact@v8
+        with:
+          name: properties
+      - run: ./gradlew :${{ matrix.node }}:build --no-parallel --no-daemon
+      - uses: actions/upload-artifact@v7
+        with:
+          name: build-${{ matrix.node }}
+          path: versions/${{ matrix.node }}/build/libs/*.jar
+          if-no-files-found: error
+  publish:
+    needs: [ check-version, build ]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      VERSION: ${{ needs.check-version.outputs.next_version }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '25'
+      - uses: gradle/actions/setup-gradle@v6
+        with:
+          cache-read-only: true
+      - uses: actions/download-artifact@v8
+        with:
+          name: properties
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: build-*
+          path: ${{ github.workspace }}/build/libs
+          merge-multiple: true
+      - run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          
+          git add stonecutter.properties.toml
+          git commit -m "chore(release): v$VERSION" --no-verify
+          git tag -a "v$VERSION" -m "v$VERSION"
+          git push --atomic origin "HEAD:$GITHUB_REF_NAME" "v$VERSION"
+      - run: ./gradlew publishMods
+        env:
+          PREBUILT_DIR: ${{ github.workspace }}/build/libs
+          RELEASE_NOTES: ${{ needs.check-version.outputs.release_notes }}
+          MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
+          CURSEFORGE_TOKEN: ${{ secrets.CURSEFORGE_TOKEN }}
+      - run: |
+          gh release create "v$VERSION" \
+            --title "v$VERSION" \
+            --notes "$RELEASE_NOTES" \
+            build/libs/*
+        env:
+          RELEASE_NOTES: ${{ needs.check-version.outputs.release_notes }}
+          GH_TOKEN: ${{ github.token }}

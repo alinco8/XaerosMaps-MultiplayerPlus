@@ -28,7 +28,7 @@ class MixinPlugin : IMixinConfigPlugin {
         targetClassName: String,
         targetClass: ClassNode,
         mixinClassName: String,
-        mixinInfo: IMixinInfo
+        mixinInfo: IMixinInfo,
     ) {
     }
 
@@ -36,7 +36,7 @@ class MixinPlugin : IMixinConfigPlugin {
         targetClassName: String,
         targetClass: ClassNode,
         mixinClassName: String,
-        mixinInfo: IMixinInfo
+        mixinInfo: IMixinInfo,
     ) {
     }
 }

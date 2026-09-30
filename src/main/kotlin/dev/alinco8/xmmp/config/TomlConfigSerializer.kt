@@ -5,24 +5,25 @@ import com.electronwill.nightconfig.core.UnmodifiableConfig
 import com.electronwill.nightconfig.toml.TomlFormat
 import com.electronwill.nightconfig.toml.TomlParser
 import com.electronwill.nightconfig.toml.TomlWriter
-import com.google.gson.FieldNamingPolicy
 import com.google.gson.Gson
-import com.google.gson.GsonBuilder
 import com.google.gson.JsonArray
 import com.google.gson.JsonElement
 import com.google.gson.JsonNull
 import com.google.gson.JsonObject
 import com.google.gson.JsonPrimitive
-import dev.alinco8.xmmp.XMMP
+import dev.alinco8.xmmp.XMMP.LOGGER
 import dev.isxander.yacl3.config.v2.api.ConfigClassHandler
 import dev.isxander.yacl3.config.v2.api.ConfigField
 import dev.isxander.yacl3.config.v2.api.ConfigSerializer
 import dev.isxander.yacl3.config.v2.api.FieldAccess
+import dev.isxander.yacl3.config.v2.api.SerialEntry
 import java.io.StringWriter
+import java.lang.reflect.Modifier
+import java.lang.reflect.Type
 import java.nio.file.Files
 import java.nio.file.Path
+import java.nio.file.StandardCopyOption
 import java.nio.file.StandardOpenOption
-import java.util.function.UnaryOperator
 
 @SuppressWarnings(
     "TooGenericExceptionCaught",
@@ -35,160 +36,17 @@ import java.util.function.UnaryOperator
 class TomlConfigSerializer<T> private constructor(
     config: ConfigClassHandler<T>,
     private val path: Path,
-    private val gson: Gson,
 ) : ConfigSerializer<T>(config) {
-
-    override fun save() {
-        XMMP.LOGGER.info("Serializing {} to '{}'", config.configClass(), path)
-
-        try {
-            val toml = CommentedConfig.of(TomlFormat.instance())
-
-            for (field in config.fields()) {
-                val serial = field.serial().orElse(null) ?: continue
-                val name = serial.serialName()
-
-                val element = try {
-                    gson.toJsonTree(field.access().get(), field.access().type())
-                } catch (e: Exception) {
-                    XMMP.LOGGER.error(
-                        "Failed to serialize config field '{}'. Skipping because TOML has no null value.",
-                        name,
-                        e,
-                    )
-                    continue
-                }
-
-                val tomlValue = jsonToTomlValue(element) ?: continue
-
-                toml.set<Any?>(listOf(name), tomlValue)
-
-                serial.comment().orElse(null)?.let { comment ->
-                    toml.setComment(listOf(name), formatTomlComment(comment))
-                }
-            }
-
-            val stringWriter = StringWriter()
-            TomlWriter().write(toml, stringWriter)
-
-            Files.createDirectories(path.parent)
-            Files.writeString(
-                path,
-                stringWriter.toString(),
-                StandardOpenOption.TRUNCATE_EXISTING,
-                StandardOpenOption.CREATE,
-            )
-        } catch (e: Exception) {
-            XMMP.LOGGER.error(
-                "Failed to serialize config class '{}'.",
-                config.configClass().simpleName,
-                e
-            )
-        }
-    }
-
-    override fun loadSafely(
-        bufferAccessMap: Map<ConfigField<*>, FieldAccess<*>>,
-    ): LoadResult {
-        if (!Files.exists(path)) {
-            XMMP.LOGGER.info(
-                "Config file '{}' does not exist. Creating it with default values.",
-                path
-            )
-            save()
-            return LoadResult.NO_CHANGE
-        }
-
-        XMMP.LOGGER.info("Deserializing {} from '{}'", config.configClass().simpleName, path)
-
-        val fieldMap = config.fields()
-            .filter { it.serial().isPresent }
-            .associateBy { it.serial().orElseThrow().serialName() }
-
-        val missingFields = fieldMap.keys.toMutableSet()
-        var dirty = false
-
-        try {
-            val toml = Files.newBufferedReader(path).use { reader ->
-                TomlParser().parse(reader)
-            }
-
-            for (entry in toml.entrySet()) {
-                val name = entry.key
-                val rawTomlValue = entry.getValue<Any?>()
-
-                val field = fieldMap[name]
-                missingFields.remove(name)
-
-                if (field == null) {
-                    XMMP.LOGGER.warn("Found unknown config field '{}'.", name)
-                    continue
-                }
-
-                @Suppress("UNCHECKED_CAST")
-                val bufferAccess = bufferAccessMap[field] as FieldAccess<Any?>? ?: continue
-
-                val serial = field.serial().orElse(null) ?: continue
-
-                val element = try {
-                    tomlValueToJson(rawTomlValue)
-                } catch (e: Exception) {
-                    XMMP.LOGGER.error(
-                        "Failed to deserialize config field '{}'. Due to the error state loading will be aborted.",
-                        name,
-                        e,
-                    )
-                    return LoadResult.FAILURE
-                }
-
-                if (element.isJsonNull && !serial.nullable()) {
-                    XMMP.LOGGER.warn(
-                        "Found null value in non-nullable config field '{}'. Leaving field as default and marking as dirty.",
-                        name,
-                    )
-                    dirty = true
-                    continue
-                }
-
-                try {
-                    bufferAccess.set(gson.fromJson(element, bufferAccess.type()))
-                } catch (e: Exception) {
-                    XMMP.LOGGER.error(
-                        "Failed to deserialize config field '{}'. Leaving as default.",
-                        name,
-                        e
-                    )
-                }
-            }
-        } catch (e: Exception) {
-            XMMP.LOGGER.error("Failed to deserialize config class.", e)
-            return LoadResult.FAILURE
-        }
-
-        if (missingFields.isNotEmpty()) {
-            for (missingField in missingFields) {
-                if (fieldMap[missingField]?.serial()?.orElseThrow()?.required() == true) {
-                    dirty = true
-                    XMMP.LOGGER.warn(
-                        "Missing required config field '{}'. Re-saving as default.",
-                        missingField
-                    )
-                }
-            }
-        }
-
-        return if (dirty) LoadResult.DIRTY else LoadResult.SUCCESS
-    }
+    private class Entry(
+        val name: String,
+        val comment: String?,
+        val type: Type,
+        val get: () -> Any?,
+        val set: (Any?) -> Unit,
+    )
 
     class Builder<T>(private val config: ConfigClassHandler<T>) {
         private var path: Path? = null
-
-        private var gsonBuilder: UnaryOperator<GsonBuilder> = UnaryOperator { builder ->
-            builder
-                .setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES)
-                .serializeNulls()
-                .setPrettyPrinting()
-        }
 
         companion object {
             fun <T> create(config: ConfigClassHandler<T>) = Builder(config)
@@ -203,89 +61,206 @@ class TomlConfigSerializer<T> private constructor(
             return TomlConfigSerializer(
                 config,
                 path ?: error("`path` must be set before building the TomlConfigSerializer."),
-                gsonBuilder.apply(GsonBuilder()).create(),
             )
         }
     }
-}
 
-private fun jsonToTomlValue(element: JsonElement): Any? {
-    return when {
-        element.isJsonNull -> null
+    override fun save() {
+        try {
+            val toml = CommentedConfig.of(TomlFormat.instance())
+            write(toml, emptyList(), rootEntries { it.access() })
 
-        element.isJsonPrimitive -> {
-            val primitive = element.asJsonPrimitive
+            val writer = StringWriter()
+            TomlWriter().write(toml, writer)
 
+            Files.createDirectories(path.parent)
+
+            val tmpFile = Files.createTempFile(path.parent, "config", ".toml")
+            try {
+                Files.writeString(
+                    tmpFile,
+                    writer.toString(),
+                    StandardOpenOption.TRUNCATE_EXISTING,
+                    StandardOpenOption.CREATE,
+                )
+                Files.move(tmpFile, path, StandardCopyOption.REPLACE_EXISTING)
+            } finally {
+                Files.deleteIfExists(tmpFile)
+            }
+        } catch (e: Exception) {
+            LOGGER.error(
+                "Failed to serialize config class '{}'.",
+                config.configClass().simpleName,
+                e
+            )
+        }
+    }
+
+    override fun loadSafely(
+        bufferAccessMap: Map<ConfigField<*>, FieldAccess<*>>,
+    ): LoadResult {
+        if (!Files.exists(path)) {
+            save()
+            return LoadResult.NO_CHANGE
+        }
+
+        return try {
+            val toml = Files.newBufferedReader(path).use { reader ->
+                TomlParser().parse(reader)
+            }
+
+            if (read(
+                    toml,
+                    "",
+                    rootEntries { bufferAccessMap[it] })
+            ) LoadResult.DIRTY else LoadResult.SUCCESS
+        } catch (e: Exception) {
+            LOGGER.error(
+                "Failed to parse config file '{}'. Using default values.",
+                path,
+                e
+            )
+
+            LoadResult.FAILURE
+        }
+    }
+
+    private fun rootEntries(access: (ConfigField<*>) -> FieldAccess<*>?): List<Entry> =
+        config.fields().mapNotNull { f ->
+            val serial = f.serial().orElse(null) ?: return@mapNotNull null
+            @Suppress("UNCHECKED_CAST")
+            val a = access(f) as? FieldAccess<Any?>? ?: return@mapNotNull null
+            Entry(
+                serial.serialName(),
+                serial.comment().orElse(null),
+                a.type(),
+                { a.get() },
+                { a.set(it) })
+        }
+
+    private fun nestedEntries(obj: Any): List<Entry> =
+        obj.javaClass.declaredFields.mapNotNull { f ->
+            val e = f.getAnnotation(SerialEntry::class.java) ?: return@mapNotNull null
+            if (Modifier.isStatic(f.modifiers)) return@mapNotNull null
+            f.isAccessible = true
+            Entry(
+                e.value.ifEmpty { f.name },
+                e.comment.ifEmpty { null },
+                f.genericType,
+                { f.get(obj) },
+                { f.set(obj, it) })
+        }
+
+    private fun isSection(type: Type): Boolean = type is Class<*> && type.declaredFields.any {
+        it.isAnnotationPresent(SerialEntry::class.java)
+    }
+
+    private fun children(e: Entry) =
+        if (isSection(e.type)) e.get()?.let { nestedEntries(it) } else null
+
+    private fun read(table: UnmodifiableConfig, prefix: String, entries: List<Entry>): Boolean {
+        var dirty = false
+
+        for (e in entries) {
+            if (!table.contains(e.name)) {
+                dirty = true
+                continue
+            }
+
+            val raw = table.get<Any?>(e.name)
+            val sub = children(e)
+            if (sub != null) {
+                if (raw is UnmodifiableConfig) {
+                    if (read(raw, "$prefix${e.name}.", sub)) dirty = true
+                } else {
+                    dirty = true
+                }
+                continue
+            }
+
+            try {
+                e.set(gson.fromJson(tomlToJson(raw), e.type))
+            } catch (err: Exception) {
+                LOGGER.error(
+                    "Failed to deserialize config field '{}{}'. Using default value.",
+                    prefix,
+                    e.name,
+                    err
+                )
+                dirty = true
+            }
+        }
+
+        return dirty
+    }
+
+    private fun write(toml: CommentedConfig, prefix: List<String>, entries: List<Entry>) {
+        for (e in entries) {
+            val p = prefix + e.name
+            val sub = children(e)
+
+            if (sub != null) {
+                write(toml, p, sub)
+            } else {
+                val value = try {
+                    jsonToToml(gson.toJsonTree(e.get(), e.type))
+                } catch (err: Exception) {
+                    LOGGER.error(
+                        "Failed to serialize config field '{}'. Skipping.",
+                        p.joinToString("."),
+                        err
+                    )
+                    null
+                } ?: continue
+
+                toml.set(p, value)
+            }
+
+            e.comment?.let { comment ->
+                toml.setComment(
+                    p,
+                    comment.lines().joinToString("\n") { " $it" }
+                )
+            }
+        }
+    }
+
+    private val gson = Gson()
+
+    private fun jsonToToml(e: JsonElement): Any? = when {
+        e.isJsonNull -> null
+        e.isJsonPrimitive -> e.asJsonPrimitive.let { p ->
             when {
-                primitive.isString -> primitive.asString
-                primitive.isBoolean -> primitive.asBoolean
-                primitive.isNumber -> parseTomlNumber(primitive.asString)
-                else -> primitive.asString
-            }
-        }
-
-        element.isJsonArray -> {
-            element.asJsonArray.map { jsonToTomlValue(it) }
-        }
-
-        element.isJsonObject -> {
-            val config = CommentedConfig.of(TomlFormat.instance())
-
-            for ((key, value) in element.asJsonObject.entrySet()) {
-                val tomlValue = jsonToTomlValue(value)
-
-                if (tomlValue != null) {
-                    config.set<Any?>(listOf(key), tomlValue)
+                p.isBoolean -> p.asBoolean
+                p.isNumber -> when (val n = p.asNumber) {
+                    is Byte, is Short, is Int, is Long -> n.toLong()
+                    is Float -> n.toString().toDouble()
+                    else -> n.toDouble()
                 }
-            }
 
-            config
+                else -> p.asString
+            }
         }
 
-        else -> element.toString()
+        e.isJsonArray -> e.asJsonArray.mapNotNull { jsonToToml(it) }
+        else -> CommentedConfig.of(TomlFormat.instance()).also { table ->
+            for ((k, v) in e.asJsonObject.entrySet()) {
+                jsonToToml(v)?.let { table.set<Any?>(listOf(k), it) }
+            }
+        }
     }
-}
 
-private fun tomlValueToJson(value: Any?): JsonElement {
-    return when (value) {
+    private fun tomlToJson(v: Any?): JsonElement = when (v) {
         null -> JsonNull.INSTANCE
+        is Boolean -> JsonPrimitive(v)
+        is Number -> JsonPrimitive(v)
+        is String -> JsonPrimitive(v)
+        is List<*> -> JsonArray().also { arr -> v.forEach { arr.add(tomlToJson(it)) } }
 
-        is String -> JsonPrimitive(value)
-        is Boolean -> JsonPrimitive(value)
-        is Number -> JsonPrimitive(value)
-
-        is List<*> -> {
-            JsonArray().also { array ->
-                value.forEach { array.add(tomlValueToJson(it)) }
-            }
+        is UnmodifiableConfig -> JsonObject().also {
+            for (entry in v.entrySet()) it.add(entry.key, tomlToJson(entry.getValue()))
         }
 
-        is UnmodifiableConfig -> {
-            JsonObject().also { obj ->
-                for (entry in value.entrySet()) {
-
-                    obj.add(entry.key, tomlValueToJson(entry.getValue()))
-                }
-            }
-        }
-
-        else -> JsonPrimitive(value.toString())
+        else -> JsonPrimitive(v.toString())
     }
-}
-
-private fun parseTomlNumber(value: String): Number {
-    return if (
-        value.contains('.') ||
-        value.contains('e', ignoreCase = true)
-    ) {
-        value.toDouble()
-    } else {
-        value.toLong()
-    }
-}
-
-private fun formatTomlComment(comment: String): String {
-    return comment
-        .lineSequence()
-        .joinToString("\n") { line -> " $line" }
 }

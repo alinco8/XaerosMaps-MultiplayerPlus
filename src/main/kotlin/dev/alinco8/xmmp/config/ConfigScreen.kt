@@ -23,7 +23,7 @@ private fun t(text: String) = Component.translatable("xmmp.config.$text")
 private fun <T : Any> ConfigCategory.Builder.simpleOption(
     default: KProperty0<T>,
     current: KMutableProperty0<T>,
-    controller: (Option<T>) -> ControllerBuilder<T>
+    controller: (Option<T>) -> ControllerBuilder<T>,
 ) = option(
     Option.createBuilder<T>()
         .name(t("categories.general.options.${current.name}.name"))
@@ -49,34 +49,9 @@ object ConfigScreen {
                 ConfigCategory.createBuilder()
                     .name(t("categories.general.name"))
                     .simpleOption(
-                        d::chunkSendLimit,
-                        i::chunkSendLimit,
-                        IntegerFieldControllerBuilder::create
-                    )
-                    .simpleOption(
-                        d::chunkApplyLimit,
-                        i::chunkApplyLimit,
-                        IntegerFieldControllerBuilder::create
-                    )
-                    .simpleOption(
-                        d::maxRetries,
-                        i::maxRetries,
-                        IntegerFieldControllerBuilder::create
-                    )
-                    .simpleOption(
                         d::flushInterval,
                         i::flushInterval,
                         LongFieldControllerBuilder::create
-                    )
-                    .simpleOption(
-                        d::maxChunkUploadsPerSecond,
-                        i::maxChunkUploadsPerSecond,
-                        IntegerFieldControllerBuilder::create
-                    )
-                    .simpleOption(
-                        d::maxChunkRowRequestsPerSecond,
-                        i::maxChunkRowRequestsPerSecond,
-                        IntegerFieldControllerBuilder::create
                     )
                     .build()
             )

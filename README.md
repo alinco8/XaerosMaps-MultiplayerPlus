@@ -8,19 +8,6 @@
 
 This mod extends the multiplayer features of Xaero's World Map and Xaero's Minimap.
 
-## ⚠️ Warning
-
-> This mod is still in development and is currently very unstable. Please make sure to back up your
-> data before using it.
->
-> Some features may be missing, and you may run into performance or stability issues.
->
-> The current implementation has little to no security measures, so it may be vulnerable to attacks
-> from malicious clients.
-> Because of this, I recommend using this mod only with a small group of trusted players.
->
-> Bug reports are very welcome! When reporting a bug, please make sure to include your log files.
-
 ## 🚀 Features
 
 ### World map syncing with other players
@@ -32,6 +19,10 @@ in `config/xaero/lib/common.cfg`)
 
 ### Planned
 
+- Server-side map generation (accurate and safe, can generate areas that haven't been loaded yet)
+- Layered map syncing (currently only surface maps are synced)
+- Connect to an external server (non-Minecraft) and sync your map with it (use cases: you are not
+  hosting the server, but want to sync your map with your friends)
 - Waypoint set sync (additions/deletions automatically synced between players)
 - Direct waypoint sharing (via in-game chat, or copy-paste for sharing outside Minecraft)
 - Server-managed waypoint sets (waypoints controlled by the server)
