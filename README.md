@@ -38,12 +38,7 @@ config file directly.
 
 ## 🫶 Support
 
-Like the mod? You can support its development by getting a server through the banner below!
+Like the mod? You can support its development by getting a server through the banner below or by
+donating on [Ko-fi](https://ko-fi.com/alinco8)!
 
 [![BisectHosting](https://www.bisecthosting.com/partners/custom-banners/46b5e2aa-795e-4034-b94d-2247b5b3c7bf.webp)](https://short.alinco8.dev/bh)
-
-You can also check out my other mod!
-
-|                                                                                                                                          |                                                               |                                                              |
-|------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------|--------------------------------------------------------------|
-| ![Xaero's Maps x Waytones](https://raw.githubusercontent.com/alinco8/XaerosMaps-x-Waystones/refs/heads/main/src/main/resources/icon.png) | [Xaero's Maps x Waystones](https://modrinth.com/mod/iv2jCzkP) | Lets you see Waystone locations on Xaero's Minimap/World Map |
