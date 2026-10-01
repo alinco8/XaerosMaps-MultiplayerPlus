@@ -53,7 +53,7 @@ object UpdateChecker {
         val req = HttpRequest.newBuilder()
             .uri(
                 URI.create(
-                    "https://api.modrinth.com/v3/project/stTaMuWa/version" +
+                    "https://api.modrinth.com/v2/project/stTaMuWa/version" +
                             "?include_changelog=false&game_versions=[%22" +
                             mcVersion +
                             "%22]&loaders=[%22" +
