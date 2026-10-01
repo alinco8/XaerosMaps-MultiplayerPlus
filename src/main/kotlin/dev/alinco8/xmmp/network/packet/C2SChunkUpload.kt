@@ -1,6 +1,7 @@
 package dev.alinco8.xmmp.network.packet
 
 import dev.alinco8.xmmp.ChunkKey
+import dev.alinco8.xmmp.SyncLayer
 import dev.alinco8.xmmp.network.XMMPPacket
 import dev.alinco8.xmmp.network.XMMPStreamCodec
 import java.util.Objects
@@ -10,6 +11,7 @@ import net.minecraft.world.level.Level
 
 data class C2SChunkUpload(
     val dimension: ResourceKey<Level>,
+    val layer: SyncLayer,
     val chunkPos: ChunkKey,
     val seq: Long,
     val payload: ByteArray,
@@ -19,6 +21,7 @@ data class C2SChunkUpload(
         override val codec = with(XMMPStreamCodec) {
             composite(
                 resourceKey(Registries.DIMENSION), C2SChunkUpload::dimension,
+                SyncLayer.codec, C2SChunkUpload::layer,
                 ChunkKey.codec, C2SChunkUpload::chunkPos,
                 long, C2SChunkUpload::seq,
                 byteArray, C2SChunkUpload::payload,
@@ -29,9 +32,10 @@ data class C2SChunkUpload(
 
     override fun equals(other: Any?) = other is C2SChunkUpload
             && dimension == other.dimension
+            && layer == other.layer
             && chunkPos == other.chunkPos
             && seq == other.seq
             && payload.contentEquals(other.payload)
 
-    override fun hashCode() = Objects.hash(dimension, chunkPos, seq, payload)
+    override fun hashCode() = Objects.hash(dimension, layer, chunkPos, seq, payload)
 }

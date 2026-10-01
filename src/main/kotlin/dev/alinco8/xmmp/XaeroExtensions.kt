@@ -1,6 +1,7 @@
 package dev.alinco8.xmmp
 
 import dev.alinco8.xmmp.network.XMMPStreamCodec
+import java.nio.file.Path
 import net.minecraft.world.level.ChunkPos
 
 const val MC_REGION_SIZE = 32
@@ -35,13 +36,10 @@ data class ChunkKey(val globalX: Int, val globalZ: Int) {
         fun toTile(n: Int) = Math.floorMod(n, XAERO_TILE_CHUNK_SIZE)
     }
 
-    fun localIndex() = localX() * MC_REGION_SIZE + localZ()
-
     fun localX() = Math.floorMod(globalX, MC_REGION_SIZE)
     fun localZ() = Math.floorMod(globalZ, MC_REGION_SIZE)
 
     fun toRegion() = RegionKey(globalX shr MC_REGION_SIZE_BITS, globalZ shr MC_REGION_SIZE_BITS)
-    fun toChunkPos() = ChunkPos(globalX, globalZ)
 
     fun tileChunkX() = toTileChunk(globalX)
     fun tileChunkZ() = toTileChunk(globalZ)
@@ -59,5 +57,36 @@ data class RegionKey(val x: Int, val z: Int) {
                 ::RegionKey
             )
         }
+    }
+}
+
+enum class SyncLayer(val caveLayer: Int, val caveStart: Int) {
+    SURFACE(Int.MAX_VALUE, Int.MAX_VALUE),
+    FULL_CAVE(Int.MIN_VALUE, Int.MIN_VALUE);
+
+    companion object {
+        val codec = with(XMMPStreamCodec.Companion) {
+            of({ buf ->
+                when (val value = buf.readByte().toInt()) {
+                    0 -> SURFACE
+                    1 -> FULL_CAVE
+                    else -> error("Unexpected value $value")
+                }
+            }, { buf, layer ->
+                buf.writeByte(
+                    when (layer) {
+                        SURFACE -> 0
+                        FULL_CAVE -> 1
+                    }
+                )
+            })
+        }
+
+        fun of(caveLayer: Int) = entries.find { it.caveLayer == caveLayer }
+    }
+
+    fun dirName(parent: Path): Path = when (this) {
+        SURFACE -> parent
+        FULL_CAVE -> parent.resolve("caves")
     }
 }

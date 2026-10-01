@@ -1,6 +1,7 @@
 package dev.alinco8.xmmp.client.xaero
 
 import dev.alinco8.xmmp.ChunkKey
+import dev.alinco8.xmmp.SyncLayer
 import dev.alinco8.xmmp.XAERO_TILE_CHUNK_SIZE
 import dev.alinco8.xmmp.XAERO_TILE_SIZE
 import dev.alinco8.xmmp.io.TilePayloadCodec
@@ -31,9 +32,6 @@ internal suspend fun <T> awaitResult(
 }
 
 object XaeroController {
-    private const val SURFACE_CAVE_LAYER = Int.MAX_VALUE
-    private const val NO_CAVE_START = Int.MAX_VALUE
-
     sealed class Result<out T> {
         data class Success<T>(val value: T) : Result<T>()
         object Loading : Result<Nothing>()
@@ -110,6 +108,7 @@ object XaeroController {
     fun MapProcessor.writeTile(
         dimension: ResourceKey<Level>,
         key: ChunkKey,
+        layer: SyncLayer,
         tileData: TilePayloadCodec.TileData,
         blocks: Array<TilePayloadCodec.BlockData>,
     ): Result<Unit> {
@@ -119,7 +118,7 @@ object XaeroController {
 
             val regionKey = key.toRegion()
             val region = getLeafMapRegion(
-                SURFACE_CAVE_LAYER,
+                layer.caveLayer,
                 regionKey.x,
                 regionKey.z,
                 true
@@ -174,7 +173,7 @@ object XaeroController {
 
                 tile.isLoaded = true
                 tile.setWrittenOnce(true)
-                tile.setWrittenCave(NO_CAVE_START, this.caveModeDepthConfig)
+                tile.setWrittenCave(layer.caveStart, this.caveModeDepthConfig)
 
                 tileChunk.setTile(
                     tileX,

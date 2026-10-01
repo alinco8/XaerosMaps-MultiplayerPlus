@@ -34,7 +34,7 @@ object XMMPClient {
     fun onTickPost() = session?.onTickPost()
 
     @JvmStatic
-    fun onTileWritten(dimension: ResourceKey<Level>, x: Int, z: Int, mapTile: MapTile) {
-        session?.onTileWritten(dimension, x, z, mapTile.snapshot() ?: return)
+    fun onTileWritten(dimension: ResourceKey<Level>, layer: Int, x: Int, z: Int, mapTile: MapTile) {
+        session?.onTileWritten(dimension, layer, x, z, mapTile.snapshot() ?: return)
     }
 }

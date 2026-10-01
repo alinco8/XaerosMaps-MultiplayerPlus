@@ -8,10 +8,12 @@ import dev.alinco8.xmmp.client.sync.ChunkDownloader
 import dev.alinco8.xmmp.client.sync.ChunkUploader
 import dev.alinco8.xmmp.client.sync.ExclusiveJob
 import dev.alinco8.xmmp.client.sync.UploadFlow
+import dev.alinco8.xmmp.SyncLayer
 import dev.alinco8.xmmp.client.xaero.TileSnapshot
 import dev.alinco8.xmmp.client.xaero.XaeroController
 import dev.alinco8.xmmp.client.xaero.XaeroController.writeTile
 import dev.alinco8.xmmp.client.xaero.awaitResult
+import dev.alinco8.xmmp.config.ServerConfig
 import dev.alinco8.xmmp.config.XMMPConfig
 import dev.alinco8.xmmp.utils.ModPaths
 import dev.alinco8.xmmp.io.TilePayloadCodec
@@ -42,32 +44,46 @@ import xaero.map.core.XaeroWorldMapCore
 
 class MapSyncSession(
     val key: MapKey,
+    private val serverConfig: ServerConfig,
     regionRequestLimiter: TokenBucket,
-    private val uploadFlow: UploadFlow,
+    uploadFlow: UploadFlow,
     scope: CoroutineScope,
 ) {
+    private class LayerData(
+        val uploader: ChunkUploader,
+        val cursorStore: CompletableDeferred<CursorStore>,
+    ) {
+        val writingJobs = ConcurrentHashMap<RegionKey, MutableSet<Job>>()
+        val failedRegions = ConcurrentHashMap.newKeySet<RegionKey>()
+        val appliedRevisions = ConcurrentHashMap<ChunkKey, Long>()
+        val latestRevisions = ConcurrentHashMap<ChunkKey, Long>()
+    }
+
     val dimension get() = key.dimension
 
     private val job = SupervisorJob(scope.coroutineContext.job)
     private val syncScope = scope + job
 
-    private val uploader = ChunkUploader(dimension, uploadFlow)
+    private val layerData: Map<SyncLayer, LayerData> = SyncLayer.entries.associateWith { layer ->
+        LayerData(
+            ChunkUploader(dimension, layer, uploadFlow),
+            CompletableDeferred(),
+        )
+    }.toMap()
     private val downloader = ChunkDownloader(dimension, regionRequestLimiter)
 
-    private val cursorStore = CompletableDeferred<CursorStore>()
-
-    private val writingJobs = ConcurrentHashMap<RegionKey, MutableSet<Job>>()
-    private val failedRegions = ConcurrentHashMap.newKeySet<RegionKey>()
-    private val appliedRevisions = ConcurrentHashMap<ChunkKey, Long>()
-    private val latestRevisions = ConcurrentHashMap<ChunkKey, Long>()
-
     private val uploaderTickJob = ExclusiveJob {
-        syncScope.launch { uploader.tick() }
+        syncScope.launch {
+            layerData.values.forEach {
+                it.uploader.tick()
+            }
+        }
     }
 
     var syncId = 0
 
     init {
+
         val processor = XaeroWorldMapCore.currentSession?.mapProcessor
             ?: error("Map processor not found, is Xaero's World Map mod loaded?")
 
@@ -79,11 +95,17 @@ class MapSyncSession(
             base = base.resolve(key.multiworldId)
         }
 
-        syncScope.launch { cursorStore.complete(CursorStore.open(base)) }
+        layerData.forEach { (layer, data) ->
+            syncScope.launch {
+                data.cursorStore.complete(
+                    CursorStore.open(layer.dirName(base))
+                )
+            }
+        }
 
         syncScope.launch {
             while (isActive) {
-                cursorStore.await().flush()
+                layerData.values.forEach { it.cursorStore.await().flush() }
 
                 delay(XMMPConfig.HANDLER.instance().flushInterval.milliseconds)
             }
@@ -94,7 +116,10 @@ class MapSyncSession(
         uploaderTickJob.launch()
     }
 
-    fun onTileWritten(x: Int, z: Int, snap: TileSnapshot) {
+    fun onTileWritten(layer: Int, x: Int, z: Int, snap: TileSnapshot) {
+        val layer = SyncLayer.of(layer) ?: return
+        if (!serverConfig.syncCaves && layer == SyncLayer.FULL_CAVE) return
+
         syncScope.launch(Dispatchers.Default) {
             val buf = FriendlyByteBuf(Unpooled.buffer())
             val payload = try {
@@ -104,26 +129,44 @@ class MapSyncSession(
                 buf.release()
             }
 
-            uploader.offer(ChunkKey(x, z), payload, PayloadHash.of(payload))
+            layerData[layer]!!.uploader.offer(
+                ChunkKey(x, z),
+                payload,
+                PayloadHash.of(payload)
+            )
         }
     }
 
-    fun onRegionIndex(regionRevisions: Map<RegionKey, Long>) {
+    fun onRegionIndex(layer: SyncLayer, regionRevisions: Map<RegionKey, Long>) {
         if (key.usingWorldSave) return
 
+
         syncScope.launch {
-            downloader.onRegionIndex(cursorStore.await(), regionRevisions) { region ->
-                failedRegions.remove(region)
+            val layerData = layerData[layer]!!
+
+            downloader.onRegionIndex(
+                layer,
+                layerData.cursorStore.await(),
+                regionRevisions
+            ) { region ->
+                layerData.failedRegions.remove(region)
             }
         }
     }
 
-    fun onChunkData(chunkPos: ChunkKey, revision: Long, payload: ByteArray): Job? {
-        val applied = appliedRevisions[chunkPos]
+    fun onChunkData(
+        chunkPos: ChunkKey,
+        layer: SyncLayer,
+        revision: Long,
+        payload: ByteArray,
+    ): Job? {
+        val layerData = layerData[layer]!!
+
+        val applied = layerData.appliedRevisions[chunkPos]
         if (applied != null && applied >= revision) return null
 
         var accepted = false
-        latestRevisions.compute(chunkPos) { _, cur ->
+        layerData.latestRevisions.compute(chunkPos) { _, cur ->
             if (cur == null || revision > cur) {
                 accepted = true
                 revision
@@ -145,13 +188,13 @@ class MapSyncSession(
                         chunkPos.globalX,
                         chunkPos.globalZ
                     )
-                    failedRegions.add(regionPos)
+                    layerData.failedRegions.add(regionPos)
 
                     return@launch
                 }
 
                 val written = awaitResult(maxAttempts = 20 * 60) {
-                    if (latestRevisions[chunkPos] != revision) return@awaitResult XaeroController.Result.Success(
+                    if (layerData.latestRevisions[chunkPos] != revision) return@awaitResult XaeroController.Result.Success(
                         false
                     )
 
@@ -161,6 +204,7 @@ class MapSyncSession(
                     processor.writeTile(
                         dimension,
                         chunkPos,
+                        layer,
                         tileData,
                         blocks
                     ).map { true }
@@ -170,36 +214,37 @@ class MapSyncSession(
                         chunkPos.globalX,
                         chunkPos.globalZ
                     )
-                    failedRegions.add(regionPos)
+                    layerData.failedRegions.add(regionPos)
 
                     return@launch
                 }
 
                 when (written) {
-                    true -> appliedRevisions.merge(chunkPos, revision, ::maxOf)
+                    true -> layerData.appliedRevisions.merge(chunkPos, revision, ::maxOf)
                     false -> {}
                 }
             } finally {
-                latestRevisions.remove(chunkPos, revision)
+                layerData.latestRevisions.remove(chunkPos, revision)
             }
         }
 
-        writingJobs.computeIfAbsent(regionPos) { ConcurrentHashMap.newKeySet() }.add(job)
-        job.invokeOnCompletion { writingJobs[regionPos]?.remove(job) }
+        layerData.writingJobs.computeIfAbsent(regionPos) { ConcurrentHashMap.newKeySet() }.add(job)
+        job.invokeOnCompletion { layerData.writingJobs[regionPos]?.remove(job) }
 
         return job
     }
 
-    fun onRegionSyncDone(regionPos: RegionKey, revision: Long, syncId: Int) {
+    fun onRegionSyncDone(layer: SyncLayer, regionPos: RegionKey, revision: Long, syncId: Int) {
         if (syncId != this.syncId) return
 
-        val jobs = writingJobs[regionPos]?.toList().orEmpty()
+        val layerData = layerData[layer]!!
+        val jobs = layerData.writingJobs[regionPos]?.toList().orEmpty()
 
         syncScope.launch {
             jobs.joinAll()
-            if (failedRegions.remove(regionPos)) return@launch
+            if (layerData.failedRegions.remove(regionPos)) return@launch
 
-            cursorStore.await().setCursor(regionPos, revision)
+            layerData.cursorStore.await().setCursor(regionPos, revision)
         }
     }
 
@@ -208,8 +253,10 @@ class MapSyncSession(
 
         runBlocking {
             withTimeoutOrNull(1.seconds) {
-                @OptIn(ExperimentalCoroutinesApi::class)
-                if (cursorStore.isCompleted) cursorStore.getCompleted().flush()
+                layerData.values.forEach {
+                    @OptIn(ExperimentalCoroutinesApi::class)
+                    if (it.cursorStore.isCompleted) it.cursorStore.getCompleted().flush()
+                }
             }
         }
     }

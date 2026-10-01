@@ -7,6 +7,7 @@ import dev.alinco8.xmmp.XMMP.LOGGER
 import dev.alinco8.xmmp.client.network.ClientPacketSender
 import dev.alinco8.xmmp.client.sync.UploadFlow
 import dev.alinco8.xmmp.client.update.UpdateChecker
+import dev.alinco8.xmmp.SyncLayer
 import dev.alinco8.xmmp.client.xaero.TileSnapshot
 import dev.alinco8.xmmp.config.ServerConfig
 import dev.alinco8.xmmp.config.XMMPConfig
@@ -23,7 +24,6 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
-import kotlinx.coroutines.job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import net.minecraft.client.Minecraft
@@ -39,7 +39,7 @@ data class MapKey(
     val usingWorldSave: Boolean,
 )
 
-class ClientSession(serverConfig: ServerConfig) {
+class ClientSession(val serverConfig: ServerConfig) {
     val isWorldMapLoaded = ModList.isModLoaded("xaeroworldmap")
 
     private val dispatcher = TickDispatcher()
@@ -113,7 +113,13 @@ class ClientSession(serverConfig: ServerConfig) {
         )
     }
 
-    fun onTileWritten(dimension: ResourceKey<Level>, x: Int, z: Int, snap: TileSnapshot) =
+    fun onTileWritten(
+        dimension: ResourceKey<Level>,
+        layer: Int,
+        x: Int,
+        z: Int,
+        snap: TileSnapshot,
+    ) =
         syncSession?.let {
             if (it.dimension != dimension) {
                 LOGGER.debug(
@@ -123,11 +129,14 @@ class ClientSession(serverConfig: ServerConfig) {
                 )
                 return@let
             }
-
-            it.onTileWritten(x, z, snap)
+            it.onTileWritten(layer, x, z, snap)
         }
 
-    fun onRegionIndex(dimension: ResourceKey<Level>, regionRevisions: Map<RegionKey, Long>) {
+    fun onRegionIndex(
+        dimension: ResourceKey<Level>,
+        layer: SyncLayer,
+        regionRevisions: Map<RegionKey, Long>,
+    ) {
         if (dimension != syncSession?.dimension) {
             LOGGER.warn(
                 "Received region revisions for dimension {}, but current dimension is {}. Ignoring.",
@@ -137,11 +146,12 @@ class ClientSession(serverConfig: ServerConfig) {
             return
         }
 
-        syncSession?.onRegionIndex(regionRevisions)
+        syncSession?.onRegionIndex(layer, regionRevisions)
     }
 
     fun onChunkData(
         dimension: ResourceKey<Level>,
+        layer: SyncLayer,
         chunkPos: ChunkKey,
         revision: Long,
         payload: ByteArray,
@@ -152,7 +162,7 @@ class ClientSession(serverConfig: ServerConfig) {
             return
         }
 
-        val job = s.onChunkData(chunkPos, revision, payload)
+        val job = s.onChunkData(chunkPos, layer, revision, payload)
         if (job == null) {
             downloadCompleted.incrementAndGet()
         } else {
@@ -169,6 +179,7 @@ class ClientSession(serverConfig: ServerConfig) {
 
         syncSession = MapSyncSession(
             key,
+            serverConfig,
             regionRequestLimiter,
             uploadFlow,
             scope,
@@ -199,13 +210,14 @@ class ClientSession(serverConfig: ServerConfig) {
 
     fun onRegionSyncDone(
         dimension: ResourceKey<Level>,
+        layer: SyncLayer,
         regionPos: RegionKey,
         revision: Long,
         syncId: Int,
     ) {
         if (dimension != syncSession?.dimension) return
 
-        syncSession?.onRegionSyncDone(regionPos, revision, syncId)
+        syncSession?.onRegionSyncDone(layer, regionPos, revision, syncId)
     }
 
     private fun sendDimensionSync(session: MapSyncSession) {

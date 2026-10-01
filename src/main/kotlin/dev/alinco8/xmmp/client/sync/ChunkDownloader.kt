@@ -3,6 +3,7 @@ package dev.alinco8.xmmp.client.sync
 import dev.alinco8.xmmp.RegionKey
 import dev.alinco8.xmmp.client.io.CursorStore
 import dev.alinco8.xmmp.client.network.ClientPacketSender
+import dev.alinco8.xmmp.SyncLayer
 import dev.alinco8.xmmp.network.TokenBucket
 import dev.alinco8.xmmp.network.packet.C2SRegionSync
 import net.minecraft.resources.ResourceKey
@@ -13,6 +14,7 @@ class ChunkDownloader(
     private val limiter: TokenBucket,
 ) {
     suspend fun onRegionIndex(
+        layer: SyncLayer,
         cursorStore: CursorStore,
         regionRevisions: Map<RegionKey, Long>,
         onRequest: (RegionKey) -> Unit,
@@ -28,7 +30,7 @@ class ChunkDownloader(
             limiter.waitForTokens(1.0)
 
             onRequest(pos)
-            ClientPacketSender.sendToServer(C2SRegionSync(dimension, pos, cursor))
+            ClientPacketSender.sendToServer(C2SRegionSync(dimension, layer, pos, cursor))
         }
     }
 }

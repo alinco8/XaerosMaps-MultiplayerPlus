@@ -42,7 +42,7 @@ object ServerPacketHandlers {
             return
         }
 
-        XMMPServer.session?.onRegionSync(sender, packet.regionPos, packet.cursor)
+        XMMPServer.session?.onRegionSync(sender, packet.layer, packet.regionPos, packet.cursor)
     }
 
     fun handleChunkUpload(

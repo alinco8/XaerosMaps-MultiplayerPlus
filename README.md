@@ -8,6 +8,14 @@
 
 This mod extends the multiplayer features of Xaero's World Map and Xaero's Minimap.
 
+## 🤔 F.A.Q.
+
+### The cave layer feature on the World Map doesn't work!
+
+When cave map syncing is enabled (it is by default), the layer feature is disabled on the World Map
+only. The Minimap is not affected. If you want the World Map layer feature back, you'll have to give
+up cave syncing: set `syncCaves` to `false` in `config/xmmp-server.toml`.
+
 ## 🚀 Features
 
 ### World map syncing with other players
@@ -20,7 +28,6 @@ in `config/xaero/lib/common.cfg`)
 ### Planned
 
 - Server-side map generation (accurate and safe, can generate areas that haven't been loaded yet)
-- Layered map syncing (currently only surface maps are synced)
 - Connect to an external server (non-Minecraft) and sync your map with it (use cases: you are not
   hosting the server, but want to sync your map with your friends)
 - Waypoint set sync (additions/deletions automatically synced between players)

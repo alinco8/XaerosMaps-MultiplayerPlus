@@ -1,6 +1,7 @@
 package dev.alinco8.xmmp.server
 
 import dev.alinco8.xmmp.ChunkKey
+import dev.alinco8.xmmp.SyncLayer
 import dev.alinco8.xmmp.config.ServerConfig
 import dev.alinco8.xmmp.network.CreditWindow
 import dev.alinco8.xmmp.network.TokenBucket
@@ -20,6 +21,7 @@ class PlayerState(
     class PendingUpload(
         val level: ServerLevel,
         val dimension: ResourceKey<Level>,
+        val layer: SyncLayer,
         val chunkPos: ChunkKey,
         val seq: Long,
         val payload: ByteArray,

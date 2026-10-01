@@ -4,6 +4,7 @@ import dev.alinco8.xmmp.ChunkKey
 import dev.alinco8.xmmp.RegionKey
 import dev.alinco8.xmmp.TickDispatcher
 import dev.alinco8.xmmp.XMMP.LOGGER
+import dev.alinco8.xmmp.SyncLayer
 import dev.alinco8.xmmp.config.ServerConfig
 import dev.alinco8.xmmp.id
 import dev.alinco8.xmmp.server.io.ServerRegionStore
@@ -29,10 +30,8 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
-import kotlinx.coroutines.job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
@@ -57,7 +56,8 @@ class ServerSession(private val server: MinecraftServer) : AutoCloseable {
     private val scope = CoroutineScope(dispatcher + rootJob)
 
     private val playerStates = ConcurrentHashMap<UUID, PlayerState>()
-    private val regionStores = ConcurrentHashMap<ResourceKey<Level>, ServerRegionStore>()
+    private val regionStores =
+        ConcurrentHashMap<Pair<ResourceKey<Level>, SyncLayer>, ServerRegionStore>()
 
     init {
         serverConfig.load()
@@ -80,13 +80,15 @@ class ServerSession(private val server: MinecraftServer) : AutoCloseable {
     private fun getPlayerState(playerId: UUID) =
         playerStates[playerId] ?: error("Player state not found for player $playerId")
 
-    private fun getRegionStore(dimension: ResourceKey<Level>): ServerRegionStore {
+    private fun getRegionStore(dimension: ResourceKey<Level>, layer: SyncLayer): ServerRegionStore {
         val id = dimension.id()
-        val dimensionDir = worldDataDir.resolve("world_map")
-            .resolve(id.namespace).resolve(id.path)
+        val dimensionDir = worldDataDir
+            .resolve("world_map")
+            .resolve(id.namespace)
+            .resolve(id.path)
 
-        return regionStores.computeIfAbsent(dimension) {
-            ServerRegionStore(pool, dimensionDir)
+        return regionStores.computeIfAbsent(dimension to layer) {
+            ServerRegionStore(pool, layer.dirName(dimensionDir))
         }
     }
 
@@ -142,12 +144,18 @@ class ServerSession(private val server: MinecraftServer) : AutoCloseable {
         playerState.outbound.signal()
 
         playerState.scope.launch {
-            ServerPacketSender.sendToPlayer(
-                player, S2CRegionIndex(
-                    dimension,
-                    getRegionStore(dimension).listRegionRevisions()
+            val syncCaves = serverConfig.instance().syncCaves
+            SyncLayer.entries.forEach { layer ->
+                if (!syncCaves && layer == SyncLayer.FULL_CAVE) return@forEach
+
+                ServerPacketSender.sendToPlayer(
+                    player, S2CRegionIndex(
+                        dimension,
+                        layer,
+                        getRegionStore(dimension, layer).listRegionRevisions()
+                    )
                 )
-            )
+            }
         }
     }
 
@@ -156,6 +164,7 @@ class ServerSession(private val server: MinecraftServer) : AutoCloseable {
         val upload = PlayerState.PendingUpload(
             player.level() as ServerLevel,
             packet.dimension,
+            packet.layer,
             packet.chunkPos,
             packet.seq,
             packet.payload
@@ -181,13 +190,20 @@ class ServerSession(private val server: MinecraftServer) : AutoCloseable {
 
             state.uploadLimiter.waitForTokens(batch.size.toDouble())
 
-            val sameDim = batch.filter { it.dimension == it.level.dimension() }
+            val syncCaves = serverConfig.instance().syncCaves
+            val sameDim = batch.filter {
+                it.dimension == it.level.dimension()
+                        && (syncCaves || it.layer != SyncLayer.FULL_CAVE)
+            }
             for (upload in validate(uploaderId, sameDim)) {
                 try {
                     val level = upload.level
                     val dimension = level.dimension()
 
-                    getRegionStore(dimension).writeChunk(upload.chunkPos, upload.payload)
+                    getRegionStore(dimension, upload.layer).writeChunk(
+                        upload.chunkPos,
+                        upload.payload
+                    )
                         ?: continue
 
                     for (player in level.players()) {
@@ -196,7 +212,7 @@ class ServerSession(private val server: MinecraftServer) : AutoCloseable {
                         val s = playerStates[player.uuid] ?: continue
                         if (!s.enableWorldMapSync || s.syncedDimension != dimension) continue
 
-                        s.outbound.enqueueChunk(upload.chunkPos)
+                        s.outbound.enqueueChunk(upload.layer, upload.chunkPos)
                     }
                 } catch (e: CancellationException) {
                     throw e
@@ -239,17 +255,19 @@ class ServerSession(private val server: MinecraftServer) : AutoCloseable {
 
                 when (item) {
                     is Outbound.Chunk -> {
-                        val data = getRegionStore(dimension).readChunkWithRevision(item.pos)
-                            ?: run {
-                                credits.release(1)
-                                continue
-                            }
+                        val data =
+                            getRegionStore(dimension, item.layer).readChunkWithRevision(item.pos)
+                                ?: run {
+                                    credits.release(1)
+                                    continue
+                                }
 
                         state.downloadLimiter.waitForTokens(1.0)
                         ServerPacketSender.sendToPlayer(
                             player,
                             S2CChunkData(
                                 dimension,
+                                item.layer,
                                 item.pos,
                                 data.second,
                                 data.first
@@ -263,6 +281,7 @@ class ServerSession(private val server: MinecraftServer) : AutoCloseable {
                             player,
                             S2CRegionSyncDone(
                                 dimension,
+                                item.layer,
                                 item.region,
                                 item.revision,
                                 item.syncId
@@ -297,7 +316,9 @@ class ServerSession(private val server: MinecraftServer) : AutoCloseable {
         }
     }
 
-    fun onRegionSync(player: ServerPlayer, regionPos: RegionKey, cursor: Long) {
+    fun onRegionSync(player: ServerPlayer, layer: SyncLayer, regionPos: RegionKey, cursor: Long) {
+        if (!serverConfig.instance().syncCaves && layer == SyncLayer.FULL_CAVE) return
+
         val playerState = getPlayerState(player.uuid)
         if (!playerState.regionRequestLimiter.tryConsume(1.0)) {
             LOGGER.warn(
@@ -311,7 +332,7 @@ class ServerSession(private val server: MinecraftServer) : AutoCloseable {
 
         val dimension = player.level().dimension()
         val syncId = playerState.syncId
-        val store = getRegionStore(dimension)
+        val store = getRegionStore(dimension, layer)
         playerState.scope.launch {
             val file = store.regionReadonly(regionPos) ?: return@launch
             val snapshot = file.regionRevision() ?: return@launch
@@ -323,12 +344,14 @@ class ServerSession(private val server: MinecraftServer) : AutoCloseable {
                     if (playerState.syncId != syncId) return@launch
 
                     playerState.outbound.enqueueChunk(
+                        layer,
                         ChunkKey.fromLocal(regionPos, chunkX, chunkZ)
                     )
                 }
             }
 
             if (playerState.syncId == syncId) playerState.outbound.enqueueDone(
+                layer,
                 regionPos,
                 snapshot,
                 syncId

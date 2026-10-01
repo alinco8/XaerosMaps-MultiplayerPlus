@@ -20,6 +20,7 @@ object ClientPacketHandlers {
         packet.apply {
             XMMPClient.session?.onRegionIndex(
                 dimension,
+                layer,
                 regionRevisions
             )
         }
@@ -29,6 +30,7 @@ object ClientPacketHandlers {
         packet.apply {
             XMMPClient.session?.onChunkData(
                 dimension,
+                layer,
                 chunkPos,
                 revision,
                 payload
@@ -40,6 +42,7 @@ object ClientPacketHandlers {
         packet.apply {
             XMMPClient.session?.onRegionSyncDone(
                 dimension,
+                layer,
                 regionPos,
                 revision,
                 syncId

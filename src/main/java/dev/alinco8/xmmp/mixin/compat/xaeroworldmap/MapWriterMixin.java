@@ -27,9 +27,8 @@ public class MapWriterMixin {
         @Local(argsOnly = true, ordinal = 9) int chunkZ
     ) {
         orig.call(tile, loaded);
+        if (layerToWrite != Integer.MAX_VALUE && layerToWrite != Integer.MIN_VALUE) return;
 
-        if (layerToWrite == Integer.MAX_VALUE) {
-            XMMPClient.onTileWritten(world.dimension(), chunkX, chunkZ, tile);
-        }
+        XMMPClient.onTileWritten(world.dimension(), layerToWrite, chunkX, chunkZ, tile);
     }
 }

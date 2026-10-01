@@ -1,6 +1,7 @@
 package dev.alinco8.xmmp.network.packet
 
 import dev.alinco8.xmmp.ChunkKey
+import dev.alinco8.xmmp.SyncLayer
 import dev.alinco8.xmmp.network.XMMPPacket
 import dev.alinco8.xmmp.network.XMMPStreamCodec
 import net.minecraft.core.registries.Registries
@@ -10,6 +11,7 @@ import net.minecraft.world.level.Level
 
 data class S2CChunkData(
     val dimension: ResourceKey<Level>,
+    val layer: SyncLayer,
     val chunkPos: ChunkKey,
     val revision: Long,
     val payload: ByteArray,
@@ -20,6 +22,7 @@ data class S2CChunkData(
         override val codec = with(XMMPStreamCodec) {
             composite(
                 resourceKey(Registries.DIMENSION), S2CChunkData::dimension,
+                SyncLayer.codec, S2CChunkData::layer,
                 ChunkKey.codec, S2CChunkData::chunkPos,
                 long, S2CChunkData::revision,
                 byteArray, S2CChunkData::payload,
@@ -32,6 +35,7 @@ data class S2CChunkData(
         if (this === other) return true
         if (other !is S2CChunkData) return false
         return dimension == other.dimension &&
+                layer == other.layer &&
                 chunkPos == other.chunkPos &&
                 revision == other.revision &&
                 payload.contentEquals(other.payload)
@@ -39,6 +43,7 @@ data class S2CChunkData(
 
     override fun hashCode() = Objects.hash(
         dimension,
+        layer,
         chunkPos,
         revision,
         payload.contentHashCode()
