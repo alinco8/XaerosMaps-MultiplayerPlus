@@ -183,7 +183,7 @@ yacl = { version = "3.9.7+26.1-fabric", range = ["3"] }
 
 [neoforge."26.1.2".deps]
 # renovate: datasource=maven depName=net.neoforged:neoforge registryUrl=https://maven.neoforged.net/releases versioning=regex:^(?<compatibility>\d+\.\d+\.\d+)\.(?<patch>\d+)(-(?<prerelease>.+))?$
-neoforge = { version = "26.1.2.112", range = ["26", "26.2"] }
+neoforge = { version = "26.1.2.114", range = ["26", "26.2"] }
 # renovate: datasource=maven depName=thedarkcolour:kotlinforforge-neoforge registryUrl=https://thedarkcolour.github.io/KotlinForForge
 kff = { version = "6.3.0a", range = ["6"] }
 # renovate: datasource=maven depName=dev.isxander:yet-another-config-lib registryUrl=https://maven.isxander.dev/releases versioning=regex:^(?<major>\d+)\.(?<minor>\d+)\.(?<patch>\d+)\+(?<compatibility>.+)$
