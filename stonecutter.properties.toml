@@ -35,7 +35,7 @@ xaero_lib = { version = "1.1.15", range = ["1.0"] }
 # renovate: datasource=maven depName=net.fabricmc:fabric-loader registryUrl=https://maven.fabricmc.net
 fabric_loader = { version = "0.19.5", range = ["0.19"] }
 # renovate: datasource=maven depName=net.fabricmc:fabric-language-kotlin registryUrl=https://maven.fabricmc.net versioning=regex:^(?<major>\d+)\.(?<minor>\d+)\.(?<patch>\d+)\+kotlin\..+$
-fabric_language_kotlin = { version = "1.13.11+kotlin.2.3.21", range = ["1"] }
+fabric_language_kotlin = { version = "1.14.1+kotlin.2.4.20", range = ["1"] }
 
 ["1.20.1".publish]
 minecraft = ["1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4"]
