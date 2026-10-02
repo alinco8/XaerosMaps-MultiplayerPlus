@@ -139,11 +139,11 @@ class NeoForgeEntrypoint : CommonEvents, ServerEvents {
                 },
                 *///? } else {
                 DirectionalPayloadHandler(
-                    { packet, ctx ->
-                        serverHandler(packet, ctx.player() as ServerPlayer)
-                    },
                     { packet, _ ->
                         clientHandler(packet)
+                    },
+                    { packet, ctx ->
+                        serverHandler(packet, ctx.player() as ServerPlayer)
                     }
                 )
                 //? }
