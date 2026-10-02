@@ -23,7 +23,7 @@ curseforge.id = 1525919
 # renovate: datasource=maven depName=com.electronwill.night-config:toml
 night_config = "3.9.0"
 # renovate: datasource=maven depName=com.github.luben:zstd-jni
-zstd = "1.5.7-9"
+zstd = "1.5.7-20"
 
 [deps]
 # renovate: datasource=maven depName=xaero.minimap:xaerominimap-fabric-1.20.1 registryUrl=https://chocolateminecraft.com/maven
