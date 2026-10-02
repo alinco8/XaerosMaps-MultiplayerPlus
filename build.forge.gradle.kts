@@ -69,7 +69,7 @@ legacyForge {
 dependencies {
     modImplementation("thedarkcolour:kotlinforforge:${prop("deps.kff.version")}")
     implementation("thedarkcolour:kfflib:${prop("deps.kff.version")}")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.11.0")
 
     jarJar(implementation("com.github.luben:zstd-jni:${prop("libs.zstd")}")!!)
     add("additionalRuntimeClasspath", "com.github.luben:zstd-jni:${prop("libs.zstd")}")
