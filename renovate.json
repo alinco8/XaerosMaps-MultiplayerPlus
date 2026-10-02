@@ -38,6 +38,12 @@
         "major"
       ],
       "enabled": false
+    },
+    {
+      "matchPackageNames": [
+        "org.spongepowered:mixin"
+      ],
+      "enabled": false
     }
   ],
   "customManagers": [
