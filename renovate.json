@@ -1,6 +1,54 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
-    "config:recommended"
+    "config:recommended",
+    ":semanticCommitTypeAll(chore)",
+    "helpers:pinGitHubActionDigests",
+    ":disableRateLimiting"
+  ],
+  "timezone": "Asia/Tokyo",
+  "prConcurrentLimit": 5,
+  "packageRules": [
+    {
+      "groupName": "github actions",
+      "matchManagers": [
+        "github-actions"
+      ]
+    },
+    {
+      "groupName": "kotlin",
+      "matchPackageNames": [
+        "org.jetbrains.kotlin**",
+        "com.google.devtools.ksp**"
+      ]
+    },
+    {
+      "groupName": "stonecutter",
+      "matchPackageNames": [
+        "dev.kikugie:stonecutter",
+        "dev.kikugie.stonecutter"
+      ]
+    },
+    {
+      "matchPackageNames": [
+        "com.terraformersmc:modmenu",
+        "thedarkcolour:kotlinforforge**"
+      ],
+      "matchUpdateTypes": [
+        "major"
+      ],
+      "enabled": false
+    }
+  ],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/^stonecutter\\.properties\\.toml$/"
+      ],
+      "matchStrings": [
+        "# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)(?: registryUrl=(?<registryUrl>\\S+))?(?: versioning=(?<versioning>\\S+))?(?: extractVersion=(?<extractVersion>\\S+))?\\n[^\\n]*?\"(?<currentValue>[^\"]+)\""
+      ]
+    }
   ]
 }
