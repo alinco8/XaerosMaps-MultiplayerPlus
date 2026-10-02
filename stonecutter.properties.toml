@@ -29,7 +29,7 @@ xaero_minimap = { version = "26.5.0", range = ["25"] }
 # renovate: datasource=maven depName=xaero.map:xaeroworldmap-fabric-1.20.1 registryUrl=https://chocolateminecraft.com/maven
 xaero_world_map = { version = "1.46.0", range = ["1.40"] }
 # renovate: datasource=maven depName=xaero.lib:xaerolib-fabric-1.20.1 registryUrl=https://chocolateminecraft.com/maven
-xaero_lib = { version = "1.1.15", range = ["1.0"] }
+xaero_lib = { version = "1.7.3", range = ["1.0"] }
 
 [fabric.deps]
 # renovate: datasource=maven depName=net.fabricmc:fabric-loader registryUrl=https://maven.fabricmc.net
