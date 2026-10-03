@@ -1,10 +1,16 @@
 xmmp:
   config:
-    title: "Xaero's Maps: Multiplayer+ 設定"
+    title: "Xaero's Maps: Multiplayer+ の設定"
     categories:
       general:
         name: "一般"
         options:
           flushInterval:
-            name: "Flush Interval"
-            description: "データを保存する間隔（ミリ秒単位）"
+            name: "保存間隔"
+            description: "データを保存する間隔（ms単位）"
+          checkUpdate:
+            name: "アップデートチェック"
+            description: "自動でアップデートを確認するかどうか"
+          downloadWindow:
+            name: "ダウンロードウィンドウ"
+            description: "同時にダウンロードできる最大チャンク数（サーバー側に制限される場合があります）"

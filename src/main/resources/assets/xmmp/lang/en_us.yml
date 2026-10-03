@@ -8,3 +8,9 @@ xmmp:
           flushInterval:
             name: "Flush Interval"
             description: "The interval at which data is saved (in milliseconds)"
+          checkUpdate:
+            name: "Check for updates"
+            description: "Whether to check for updates"
+          downloadWindow:
+            name: "Download Window"
+            description: "Max chunk downloads to have in flight at once (the server may cap this)"

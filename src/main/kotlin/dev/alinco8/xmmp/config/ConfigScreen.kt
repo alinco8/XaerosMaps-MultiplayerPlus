@@ -8,6 +8,7 @@ import dev.isxander.yacl3.api.YetAnotherConfigLib
 import dev.isxander.yacl3.api.controller.ControllerBuilder
 import dev.isxander.yacl3.api.controller.IntegerFieldControllerBuilder
 import dev.isxander.yacl3.api.controller.LongFieldControllerBuilder
+import dev.isxander.yacl3.api.controller.TickBoxControllerBuilder
 import kotlin.reflect.KMutableProperty0
 import kotlin.reflect.KProperty0
 import net.minecraft.client.gui.screens.Screen
@@ -52,6 +53,16 @@ object ConfigScreen {
                         d::flushInterval,
                         i::flushInterval,
                         LongFieldControllerBuilder::create
+                    )
+                    .simpleOption(
+                        d::checkUpdate,
+                        i::checkUpdate,
+                        TickBoxControllerBuilder::create
+                    )
+                    .simpleOption(
+                        d::downloadWindow,
+                        i::downloadWindow,
+                        IntegerFieldControllerBuilder::create
                     )
                     .build()
             )

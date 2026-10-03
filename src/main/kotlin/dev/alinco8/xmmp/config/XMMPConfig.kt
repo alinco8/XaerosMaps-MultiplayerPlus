@@ -19,7 +19,7 @@ class XMMPConfig {
                 .build()
     }
 
-    @SerialEntry(comment = "Interval in milliseconds to flush the region stores")
+    @SerialEntry(comment = "Interval in milliseconds to flush the cursor stores")
     var flushInterval = 5000L
 
     @SerialEntry(comment = "Check for updates")
