@@ -18,7 +18,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
-      - uses: cargo-bins/cargo-binstall@307bd5ffcec9b16554d0e7dfc0f1a364b2ceb695 # main
+      - uses: cargo-bins/cargo-binstall@7bebc2e59eb8820162b7ac8f62a92bfdb2732447 # main
       - run: cargo-binstall --no-confirm git-cliff tomato-toml
       - id: check-version
         #language=bash
