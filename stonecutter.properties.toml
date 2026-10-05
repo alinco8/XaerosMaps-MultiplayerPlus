@@ -25,7 +25,7 @@ zstd = "1.5.7-21"
 
 [deps]
 # renovate: datasource=maven depName=xaero.minimap:xaerominimap-fabric-1.20.1 registryUrl=https://chocolateminecraft.com/maven
-xaero_minimap = { version = "26.5.0", range = ["25"] }
+xaero_minimap = { version = "26.6.0", range = ["25"] }
 # renovate: datasource=maven depName=xaero.map:xaeroworldmap-fabric-1.20.1 registryUrl=https://chocolateminecraft.com/maven
 xaero_world_map = { version = "1.47.0", range = ["1.40"] }
 # renovate: datasource=maven depName=xaero.lib:xaerolib-fabric-1.20.1 registryUrl=https://chocolateminecraft.com/maven
