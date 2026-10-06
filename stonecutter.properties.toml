@@ -132,7 +132,7 @@ yacl = { version = "3.8.2+1.21.1-fabric", range = ["3"] }
 # renovate: datasource=maven depName=org.parchmentmc.data:parchment-1.21.1 registryUrl=https://maven.parchmentmc.org
 parchment.version = "2024.11.17"
 # renovate: datasource=maven depName=net.neoforged:neoforge registryUrl=https://maven.neoforged.net/releases versioning=regex:^(?<compatibility>\d+\.\d+)\.(?<patch>\d+)(-(?<prerelease>.+))?$
-neoforge = { version = "21.1.255", range = ["21", "22"] }
+neoforge = { version = "21.1.256", range = ["21", "22"] }
 # renovate: datasource=maven depName=thedarkcolour:kotlinforforge-neoforge registryUrl=https://thedarkcolour.github.io/KotlinForForge
 kff = { version = "5.12.0", range = ["5"] }
 # renovate: datasource=maven depName=dev.isxander:yet-another-config-lib registryUrl=https://maven.isxander.dev/releases versioning=regex:^(?<major>\d+)\.(?<minor>\d+)\.(?<patch>\d+)\+(?<compatibility>.+)$
