@@ -1,0 +1,8 @@
+name: xmmp
+main: dev.alinco8.xmmp.plugin.XMMPPlugin
+version: ${version}
+api-version: 1.20
+libraries:
+  - org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm:1.10.2
+  - com.akuleshov7:ktoml-core-jvm:0.7.1
+  - com.github.luben:zstd-jni:1.5.7-14

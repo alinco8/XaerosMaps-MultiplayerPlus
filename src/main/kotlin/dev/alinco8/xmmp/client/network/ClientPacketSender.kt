@@ -1,37 +1,68 @@
 package dev.alinco8.xmmp.client.network
 
-//? if fabric {
-/*import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking
+//? fabric
+//import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking
 
-*///? } else if neoforge {
-import net.neoforged.neoforge.network.PacketDistributor
+//? forge
+//import dev.alinco8.xmmp.platform.forge.ForgeEntrypoint
 
-//? if >=1.21.8 {
-/*import net.neoforged.neoforge.client.network.ClientPacketDistributor
+import dev.alinco8.xmmp.client.XMMPClient
+import dev.alinco8.xmmp.client.network.minecraft.MinecraftPacketSender
+import dev.alinco8.xmmp.client.network.standalone.StandalonePacketSender
+import dev.alinco8.xmmp.config.XMMPConfig
+import dev.alinco8.xmmp.core.LOGGER
+import dev.alinco8.xmmp.core.network.XMMPPacket
+import dev.alinco8.xmmp.network.FramePacket
+import net.minecraft.client.Minecraft
 
-*///? }
+interface ClientPacketSender : AutoCloseable {
+    companion object {
+        fun create(): ClientPacketSender? {
+            val canSend = run {
+                //? fabric
+                //ClientPlayNetworking.canSend(FramePacket.ID)
+                //? neoforge
+                Minecraft.getInstance().connection?.hasChannel(FramePacket.ID) ?: false
+                //? if forge {
+                /*Minecraft.getInstance().connection?.let {
+                    ForgeEntrypoint.CHANNEL.isRemotePresent(it.connection)
+                } ?: false
+                *///? }
+            }
+            LOGGER.debug("Can send packets to the server?: $canSend")
 
-//? } else if forge {
-/*import dev.alinco8.xmmp.platform.forge.ForgeEntrypoint
+            if (canSend) return MinecraftPacketSender()
 
-*///? }
+            val worldId = XMMPClient.getWorldId() ?: run {
+                LOGGER.debug("Failed to get world ID, cannot create packet sender")
 
-import dev.alinco8.xmmp.network.XMMPPacket
+                return null
+            }
+            val worldConfig = XMMPConfig.HANDLER.instance().worlds[worldId] ?: run {
+                LOGGER.debug("No config found for world $worldId, cannot create packet sender")
 
-object ClientPacketSender {
-    fun <T : XMMPPacket<T>> sendToServer(packet: T) {
-        //? if fabric {
-        /*ClientPlayNetworking.send(packet)
+                return null
+            }
+            val items = worldConfig.serverAddress.split(':', limit = 2)
 
-        *///? } else if neoforge {
-        //? if >=1.21.8 {
-        /*ClientPacketDistributor.sendToServer(packet)
-        *///? } else {
-        PacketDistributor.sendToServer(packet)
-        //? }
+            try {
+                val host = items[0]
+                val port = items.getOrNull(1)?.toIntOrNull() ?: 25580
 
-        //? } else if forge {
-        /*ForgeEntrypoint.CHANNEL.sendToServer(packet)
-        *///? }
+                val sender =
+                    StandalonePacketSender(host, port)
+
+                return sender
+            } catch (e: Exception) {
+                LOGGER.error(
+                    "Failed to create standalone packet sender for world $worldId: ${e.message}",
+                    e
+                )
+
+                return null
+            }
+        }
     }
+
+    fun <T : XMMPPacket<T>> send(packet: T)
 }

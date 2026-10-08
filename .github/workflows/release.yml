@@ -11,6 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       next_version: ${{ steps.check-version.outputs.next_version }}
+      prerelease: ${{ steps.check-version.outputs.prerelease }}
       release_notes: ${{ steps.check-version.outputs.release_notes }}
       versions: ${{ steps.check-version.outputs.versions }}
       vcs: ${{ steps.check-version.outputs.vcs }}
@@ -19,32 +20,49 @@ jobs:
         with:
           fetch-depth: 0
       - uses: cargo-bins/cargo-binstall@c06f6a0003f7c6165a00c89d1697731c9e8a5c72 # main
-      - run: cargo-binstall --no-confirm git-cliff tomato-toml
+      - run: cargo-binstall --no-confirm git-cliff
       - id: check-version
         #language=bash
         run: |
-          current_version=$(tomato get mod.version stonecutter.properties.toml)
+          current_version=$(sed -nE 's/^version[[:space:]]*=[[:space:]]*//p' gradle.properties | tr -d '[:space:]')
           next_version=$(git-cliff --bumped-version)
           next_version=${next_version#v}
-          
-          if [ "$current_version" = "$next_version" ]; then
-            echo "No new version detected. ($current_version)"
-            exit 1
+
+          if [ "$GITHUB_REF_NAME" = "main" ]; then
+            prerelease=false
+
+            if [ "$current_version" = "$next_version" ]; then
+              echo "No new version detected. ($current_version)"
+              exit 1
+            fi
+
+            if git rev-parse -q --verify "refs/tags/v$next_version" >/dev/null; then
+              echo "Tag v$next_version already exists."
+              exit 1
+            fi
+          else
+            prerelease=true
+
+            max_len=32
+            branch=$(echo "$GITHUB_REF_NAME" \
+              | tr 'A-Z' 'a-z' \
+              | sed -E 's/[^a-z0-9]+/-/g; s/^-+//; s/-+$//' \
+              | cut -c1-$max_len \
+              | sed -E 's/-+$//')
+            branch=${branch:-branch}
+
+            next_version="${next_version}-dev.${branch}.${GITHUB_RUN_NUMBER}"
           fi
-          
-          if git rev-parse -q --verify "refs/tags/v$next_version" >/dev/null; then
-            echo "Tag v$next_version already exists."
-            exit 1
-          fi
-          
-          echo "New version detected: $next_version"
+
+          echo "New version: $next_version (prerelease=$prerelease)"
           echo "next_version=$next_version" >> $GITHUB_OUTPUT
-          tomato set mod.version "$next_version" stonecutter.properties.toml
-          
+          echo "prerelease=$prerelease" >> $GITHUB_OUTPUT
+          sed -i -E "s/^version[[:space:]]*=.*/version=$next_version/" gradle.properties
+
           versions=$(jq -c '.versions | map(split(":") | { node: .[0], mc: .[1] })' versions.json)
           echo "Building with versions: $versions"
           echo "versions=$versions" >> $GITHUB_OUTPUT
-          
+
           vcs=$(jq -r '.vcs // (.versions[0] | split(":")[0])' versions.json)
           echo "vcs=$vcs" >> $GITHUB_OUTPUT
 
@@ -57,7 +75,7 @@ jobs:
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: properties
-          path: stonecutter.properties.toml
+          path: gradle.properties
   build:
     needs: check-version
     runs-on: ubuntu-latest
@@ -83,14 +101,9 @@ jobs:
           name: build-${{ matrix.node }}
           path: versions/${{ matrix.node }}/build/libs/*.jar
           if-no-files-found: error
-  publish:
-    needs: [ check-version, build ]
+  build-tools:
+    needs: check-version
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    env:
-      VERSION: ${{ needs.check-version.outputs.next_version }}
-      RELEASE_NOTES: ${{ needs.check-version.outputs.release_notes }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6
@@ -103,28 +116,74 @@ jobs:
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           name: properties
+      - run: ./gradlew :plugin:build :standalone:build --no-parallel --no-daemon
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: tools
+          path: |
+            plugin/build/libs/*.jar
+            standalone/build/libs/*.jar
+            !standalone/build/libs/*-plain.jar
+          if-no-files-found: error
+  publish:
+    needs: [ check-version, build, build-tools ]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      VERSION: ${{ needs.check-version.outputs.next_version }}
+      PRERELEASE: ${{ needs.check-version.outputs.prerelease }}
+      RELEASE_NOTES: ${{ needs.check-version.outputs.release_notes }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - if: env.PRERELEASE == 'false'
+        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6
+        with:
+          distribution: temurin
+          java-version: '25'
+      - if: env.PRERELEASE == 'false'
+        uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6
+        with:
+          cache-read-only: true
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: properties
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           pattern: build-*
           path: ${{ github.workspace }}/build/libs
           merge-multiple: true
-      - run: |
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: tools
+          path: ${{ github.workspace }}/build/tools
+      - if: env.PRERELEASE == 'false'
+        run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          
-          git add stonecutter.properties.toml
+
+          git add gradle.properties
           git commit -m "chore(release): v$VERSION" --no-verify
           git tag -a "v$VERSION" -m "v$VERSION"
           git push --atomic origin "HEAD:$GITHUB_REF_NAME" "v$VERSION"
-      - run: ./gradlew publishMods
+      - if: env.PRERELEASE == 'false'
+        run: ./gradlew publishMods
         env:
           PREBUILT_DIR: ${{ github.workspace }}/build/libs
           MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
           CURSEFORGE_TOKEN: ${{ secrets.CURSEFORGE_TOKEN }}
       - run: |
+          args=()
+          if [ "$PRERELEASE" = "true" ]; then
+            args+=(--prerelease --target "$GITHUB_SHA")
+          fi
+
           gh release create "v$VERSION" \
             --title "v$VERSION" \
             --notes "$RELEASE_NOTES" \
-            build/libs/*
+            "${args[@]}" \
+            build/libs/* \
+            build/tools/plugin/build/libs/*.jar \
+            build/tools/standalone/build/libs/*.jar
         env:
           GH_TOKEN: ${{ github.token }}

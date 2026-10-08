@@ -8,6 +8,7 @@ import buildlogic.strictMaven
 
 plugins {
     kotlin("jvm")
+    kotlin("plugin.serialization")
     id("com.google.devtools.ksp")
     id("me.modmuss50.mod-publish-plugin")
     id("dev.kikugie.fletching-table")
@@ -28,7 +29,7 @@ extra["minecraft"] = minecraft
 extra["loader"] = loader
 
 base.archivesName = prop("mod.id")
-version = "${prop("mod.version")}+$minecraft-$loader"
+version = "${prop("version")}+$minecraft-$loader"
 
 fletchingTable {
     j52j {
@@ -113,6 +114,7 @@ tasks {
             .filterValues { it != null }
             .mapValues { it.value.toString() } +
                 mapOf(
+                    "version" to project.version.toString(),
                     "env.minecraft" to minecraft,
                     "env.loader" to loader,
                 )
@@ -144,7 +146,7 @@ publishMods {
     changelog = propOrNull("RELEASE_NOTES") ?: "No release notes provided."
     modLoaders.add(loader)
 
-    displayName = "${prop("mod.version")} for $loader $minecraft"
+    displayName = "${prop("version")} for $loader $minecraft"
 
     var mcVersions = (propList("publish.minecraft") + minecraft).distinct()
 

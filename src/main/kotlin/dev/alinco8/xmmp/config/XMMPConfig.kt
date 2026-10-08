@@ -1,6 +1,7 @@
 package dev.alinco8.xmmp.config
 
 import dev.alinco8.xmmp.XMMP
+import dev.alinco8.xmmp.client.MapKey
 import dev.alinco8.xmmp.utils.ModPaths
 import dev.isxander.yacl3.config.v2.api.ConfigClassHandler
 import dev.isxander.yacl3.config.v2.api.SerialEntry
@@ -27,4 +28,12 @@ class XMMPConfig {
 
     @SerialEntry(comment = "Max chunk downloads to have in flight at once (the server may cap this)")
     var downloadWindow = 128
+
+    @SerialEntry(comment = "World specific settings")
+    var worlds = HashMap<String, WorldConfig>()
+
+    class WorldConfig {
+        @SerialEntry(comment = "Standalone server address (host:port)")
+        var serverAddress = ""
+    }
 }

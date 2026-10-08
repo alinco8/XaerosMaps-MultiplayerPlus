@@ -14,3 +14,9 @@ xmmp:
           downloadWindow:
             name: "Download Window"
             description: "Max chunk downloads to have in flight at once (the server may cap this)"
+      world:
+        name: "World Specific"
+        options:
+          serverAddress:
+            name: "Server Address"
+            description: "The address of the server to connect to (host:port)"

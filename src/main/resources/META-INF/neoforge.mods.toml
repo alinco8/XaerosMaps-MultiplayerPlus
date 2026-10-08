@@ -5,7 +5,7 @@ issueTrackerURL = "${mod.links.issues}"
 
 [[mods]]
 modId = "${mod.id}"
-version = "${mod.version}+${env.minecraft}-${env.loader}"
+version = "${version}"
 displayName = "${mod.name}"
 updateJSONURL = "${mod.links.neoforge_updates}"
 displayURL = "${mod.links.homepage}"

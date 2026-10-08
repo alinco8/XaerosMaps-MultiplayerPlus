@@ -29,15 +29,18 @@ dependencies {
 
     modImplementation("com.terraformersmc:modmenu:${prop("deps.modmenu.version")}")
 
+    include(implementation("dev.alinco8.xmmp:core")!!)
     include(implementation("com.github.luben:zstd-jni:${prop("libs.zstd")}")!!)
 
     include(implementation("com.electronwill.night-config:toml:${prop("libs.night_config")}")!!)
     include(implementation("com.electronwill.night-config:core:${prop("libs.night_config")}")!!)
+    include(runtimeOnly("com.akuleshov7:ktoml-core:0.7.1")!!)
 
     listOf("spark", "sodium", "ferrite-core", "modern-fix", "lithium").forEach {
         try {
             modLocalRuntime(fletchingTable.modrinth(it, minecraft, loader))
         } catch (_: Exception) {
+            println("Failed to resolve mod '$it' from modrinth dependencies, skipping...")
         }
     }
 }
@@ -58,6 +61,7 @@ loom {
             inherit(runs["client"])
             programArguments.addAll("--username", "Dev2")
             displayName = "${project.name} - Client 2"
+            runDirectory = file("run2")
         }
         named("server") {
             displayName = "${project.name} - Server"

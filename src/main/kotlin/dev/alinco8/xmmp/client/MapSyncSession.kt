@@ -1,24 +1,25 @@
 package dev.alinco8.xmmp.client
 
-import dev.alinco8.xmmp.ChunkKey
-import dev.alinco8.xmmp.RegionKey
+import dev.alinco8.xmmp.core.ChunkKey
+import dev.alinco8.xmmp.core.RegionKey
 import dev.alinco8.xmmp.XMMP.LOGGER
 import dev.alinco8.xmmp.client.io.CursorStore
 import dev.alinco8.xmmp.client.sync.ChunkDownloader
 import dev.alinco8.xmmp.client.sync.ChunkUploader
 import dev.alinco8.xmmp.client.sync.ExclusiveJob
 import dev.alinco8.xmmp.client.sync.UploadFlow
-import dev.alinco8.xmmp.SyncLayer
+import dev.alinco8.xmmp.core.SyncLayer
 import dev.alinco8.xmmp.client.xaero.TileSnapshot
 import dev.alinco8.xmmp.client.xaero.XaeroController
 import dev.alinco8.xmmp.client.xaero.XaeroController.writeTile
 import dev.alinco8.xmmp.client.xaero.awaitResult
-import dev.alinco8.xmmp.config.ServerConfig
 import dev.alinco8.xmmp.config.XMMPConfig
+import dev.alinco8.xmmp.core.config.ServerConfig
 import dev.alinco8.xmmp.utils.ModPaths
 import dev.alinco8.xmmp.io.TilePayloadCodec
-import dev.alinco8.xmmp.io.PayloadHash
-import dev.alinco8.xmmp.network.TokenBucket
+import dev.alinco8.xmmp.core.io.PayloadHash
+import dev.alinco8.xmmp.core.network.TokenBucket
+import dev.alinco8.xmmp.id
 import io.netty.buffer.ByteBufUtil
 import io.netty.buffer.Unpooled
 import java.util.concurrent.ConcurrentHashMap
@@ -39,12 +40,18 @@ import kotlinx.coroutines.plus
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
+import net.minecraft.core.registries.Registries
 import net.minecraft.network.FriendlyByteBuf
+import net.minecraft.resources.ResourceKey
 import xaero.map.core.XaeroWorldMapCore
 
-class MapSyncSession(
+class MapSyncContext(
     val key: MapKey,
-    private val serverConfig: ServerConfig,
+    val world: WorldContext,
+)
+
+class MapSyncSession(
+    private val ctx: MapSyncContext,
     regionRequestLimiter: TokenBucket,
     uploadFlow: UploadFlow,
     scope: CoroutineScope,
@@ -59,18 +66,18 @@ class MapSyncSession(
         val latestRevisions = ConcurrentHashMap<ChunkKey, Long>()
     }
 
-    val dimension get() = key.dimension
+    val dimension get() = ctx.key.dimension
 
     private val job = SupervisorJob(scope.coroutineContext.job)
     private val syncScope = scope + job
 
     private val layerData: Map<SyncLayer, LayerData> = SyncLayer.entries.associateWith { layer ->
         LayerData(
-            ChunkUploader(dimension, layer, uploadFlow),
+            ChunkUploader(ctx, dimension.id(), layer, uploadFlow),
             CompletableDeferred(),
         )
     }.toMap()
-    private val downloader = ChunkDownloader(dimension, regionRequestLimiter)
+    private val downloader = ChunkDownloader(ctx, dimension.id(), regionRequestLimiter)
 
     private val uploaderTickJob = ExclusiveJob {
         syncScope.launch {
@@ -89,10 +96,12 @@ class MapSyncSession(
 
         var base = ModPaths.gameDir()
             .resolve("xmmp")
-            .resolve(key.mainId)
-            .resolve(processor.getDimensionName(key.dimension))
-        if (key.multiworldId != null) {
-            base = base.resolve(key.multiworldId)
+            .resolve(ctx.key.mainId)
+            .resolve(
+                processor.getDimensionName(ctx.key.dimension)
+            )
+        if (ctx.key.multiworldId != null) {
+            base = base.resolve(ctx.key.multiworldId)
         }
 
         layerData.forEach { (layer, data) ->
@@ -118,7 +127,7 @@ class MapSyncSession(
 
     fun onTileWritten(layer: Int, x: Int, z: Int, snap: TileSnapshot) {
         val layer = SyncLayer.of(layer) ?: return
-        if (!serverConfig.syncCaves && layer == SyncLayer.FULL_CAVE) return
+        if (!ctx.world.sharedConfig.syncCaves && layer == SyncLayer.FULL_CAVE) return
 
         syncScope.launch(Dispatchers.Default) {
             val buf = FriendlyByteBuf(Unpooled.buffer())
@@ -138,8 +147,7 @@ class MapSyncSession(
     }
 
     fun onRegionIndex(layer: SyncLayer, regionRevisions: Map<RegionKey, Long>) {
-        if (key.usingWorldSave) return
-
+        if (ctx.key.usingWorldSave) return
 
         syncScope.launch {
             val layerData = layerData[layer]!!

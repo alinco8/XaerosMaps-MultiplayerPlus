@@ -1,8 +1,12 @@
 package dev.alinco8.xmmp.server
 
+import dev.alinco8.xmmp.XMMP
 import dev.alinco8.xmmp.common.ServerEvents
+import dev.alinco8.xmmp.core.server.ServerSession
+import dev.alinco8.xmmp.utils.ModPaths
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerPlayer
+import net.minecraft.world.level.storage.LevelResource
 
 object XMMPServer {
     @Volatile
@@ -24,7 +28,11 @@ object XMMPServer {
     fun onServerStarted(server: MinecraftServer) {
         check(session == null) { "Session should be null when server starts" }
 
-        session = ServerSession(server)
+        session = ServerSession(
+            ModPaths.configDir().resolve("${XMMP.MOD_ID}-server.toml").toFile(),
+            server.getWorldPath(LevelResource("xmmp")),
+            ServerHostImpl(server),
+        )
     }
 
     fun onServerStopping() {
@@ -34,9 +42,10 @@ object XMMPServer {
     }
 
     fun onTickPost() = session?.onTickPost()
-    fun onPlayerChannelsReady(player: ServerPlayer) = session?.onPlayerChannelsReady(player)
+    fun onPlayerChannelsReady(player: ServerPlayer) = session?.onPlayerChannelsReady(player.uuid)
 
-    fun onPlayerJoin(player: ServerPlayer) = session?.onPlayerJoin(player)
-    fun onPlayerLeave(player: ServerPlayer) = session?.onPlayerLeave(player)
-    fun onPlayerChangedDimension(player: ServerPlayer) = session?.onPlayerChangedDimension(player)
+    fun onPlayerJoin(player: ServerPlayer) = session?.onPlayerJoin(player.uuid)
+    fun onPlayerLeave(player: ServerPlayer) = session?.onPlayerLeave(player.uuid)
+    fun onPlayerChangedDimension(player: ServerPlayer) =
+        session?.onPlayerChangedDimension(player.uuid)
 }

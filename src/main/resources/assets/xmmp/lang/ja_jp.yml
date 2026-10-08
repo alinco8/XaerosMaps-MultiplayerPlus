@@ -14,3 +14,9 @@ xmmp:
           downloadWindow:
             name: "ダウンロードウィンドウ"
             description: "同時にダウンロードできる最大チャンク数（サーバー側に制限される場合があります）"
+      world:
+        name: "ワールド固有"
+        options:
+          serverAddress:
+            name: "サーバーアドレス"
+            description: "接続するサーバーのアドレス（ホスト:ポート）"

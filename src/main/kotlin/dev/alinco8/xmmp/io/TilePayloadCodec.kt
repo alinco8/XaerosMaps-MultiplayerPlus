@@ -2,15 +2,22 @@ package dev.alinco8.xmmp.io
 
 //? if >=1.21.11 {
 /*import net.minecraft.resources.Identifier
-
 *///? } else {
 import net.minecraft.resources.ResourceLocation as Identifier
-
 //? }
 
-import dev.alinco8.xmmp.MC_CHUNK_SIZE
+import dev.alinco8.xmmp.core.MC_CHUNK_SIZE
 import dev.alinco8.xmmp.XMMP.LOGGER
-import dev.alinco8.xmmp.network.XMMPStreamCodec
+import dev.alinco8.xmmp.core.network.XMMPStreamCodec
+import dev.alinco8.xmmp.core.network.readId
+import dev.alinco8.xmmp.core.network.readUtf
+import dev.alinco8.xmmp.core.network.readVarInt
+import dev.alinco8.xmmp.core.network.writeId
+import dev.alinco8.xmmp.core.network.writeUtf
+import dev.alinco8.xmmp.core.network.writeVarInt
+import dev.alinco8.xmmp.toIdentifier
+import dev.alinco8.xmmp.toResourceId
+import io.netty.buffer.ByteBuf
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap
 import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap
 import net.minecraft.core.registries.BuiltInRegistries
@@ -23,9 +30,15 @@ import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.block.state.properties.Property
 
 object TilePayloadCodec {
-    const val VERSION = 2
+    const val VERSION = 3
 
-    private val biomeKeyCodec = XMMPStreamCodec.resourceKey(Registries.BIOME)
+    private val biomeKeyCodec = XMMPStreamCodec.of(
+        { buf ->
+            FriendlyByteBuf(buf).readResourceKey(Registries.BIOME)
+        }, { buf, biomeKey ->
+            FriendlyByteBuf(buf).writeResourceKey(biomeKey)
+        }
+    )
 
     private class Palette<T>(private val map: MutableMap<T, Int>) {
         val entries = ArrayList<T>()
@@ -36,7 +49,7 @@ object TilePayloadCodec {
         }
     }
 
-    fun encode(buf: FriendlyByteBuf, tileData: TileData, blocks: Array<BlockData>) {
+    fun encode(buf: ByteBuf, tileData: TileData, blocks: Array<BlockData>) {
         val states = Palette<BlockState>(Reference2IntOpenHashMap())
         val biomes = Palette<ResourceKey<Biome>>(Object2IntOpenHashMap())
 
@@ -54,7 +67,8 @@ object TilePayloadCodec {
         }
 
         buf.writeInt(VERSION)
-        TileData.codec.encode(buf, tileData)
+
+        buf.writeInt(tileData.worldInterpretationVersion)
 
         buf.writeVarInt(states.entries.size)
         states.entries.forEach {
@@ -84,7 +98,7 @@ object TilePayloadCodec {
         }
     }
 
-    fun decode(buf: FriendlyByteBuf): Pair<TileData, Array<BlockData>>? = runCatching {
+    fun decode(buf: ByteBuf): Pair<TileData, Array<BlockData>>? = runCatching {
         val version = buf.readInt()
         if (version != VERSION) {
             LOGGER.warn("Received tile payload with unsupported version $version, expected $VERSION")
@@ -92,7 +106,9 @@ object TilePayloadCodec {
             return null
         }
 
-        val tileData = TileData.codec.decode(buf)
+        val tileData = TileData(
+            buf.readInt()
+        )
 
         val stateCount = buf.readVarInt()
         val states = Array(stateCount) {
@@ -112,6 +128,10 @@ object TilePayloadCodec {
             val glowing = buf.readBoolean()
 
             val overlayCount = buf.readVarInt()
+            check(overlayCount <= BlockOverlay.MAX_OVERLAYS) {
+                "Too many overlays: $overlayCount, max is ${BlockOverlay.MAX_OVERLAYS}"
+            }
+
             val overlays = Array(overlayCount) {
                 val overlayState = states[buf.readVarInt()]
                 val overlayLight = buf.readByte()
@@ -129,9 +149,9 @@ object TilePayloadCodec {
 
     private val blockStateCodec = XMMPStreamCodec.of(
         { buf ->
-            val blockId = Identifier /*?>=1.21||forge{*/.parse/*?}*/(buf.readUtf())
+            val blockId = buf.readId().toIdentifier()
             val block = BuiltInRegistries.BLOCK.getOptional(blockId).orElse(Blocks.AIR)
-            var state = block.defaultBlockState()
+            var state = block!!.defaultBlockState()
 
             val propsByName = state.properties.associateBy { it.name }
 
@@ -149,7 +169,7 @@ object TilePayloadCodec {
 
             return@of state
         }, { buf, state ->
-            buf.writeUtf(BuiltInRegistries.BLOCK.getKey(state.block).toString())
+            buf.writeId(BuiltInRegistries.BLOCK.getKey(state.block).toResourceId())
 
             val props = state.properties.toList()
             buf.writeVarInt(props.size)
@@ -176,16 +196,7 @@ object TilePayloadCodec {
 
     data class TileData(
         val worldInterpretationVersion: Int,
-    ) {
-        companion object {
-            val codec = with(XMMPStreamCodec) {
-                composite(
-                    int, TileData::worldInterpretationVersion,
-                    ::TileData
-                )
-            }
-        }
-    }
+    )
 
     data class BlockData(
         val blockState: BlockState,

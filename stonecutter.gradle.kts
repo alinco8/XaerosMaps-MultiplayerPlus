@@ -22,3 +22,7 @@ stonecutter tasks {
     order("publishModrinth")
     order("publishCurseforge")
 }
+
+allprojects {
+    version = rootProject.version
+}

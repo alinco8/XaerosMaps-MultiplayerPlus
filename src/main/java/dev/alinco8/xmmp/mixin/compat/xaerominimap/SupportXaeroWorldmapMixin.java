@@ -13,7 +13,7 @@ public class SupportXaeroWorldmapMixin {
     private int xmmp$forceFullCaveMode(int original) {
         var session = XMMPClient.INSTANCE.getSession();
         if (session == null) return original;
-        if (!session.getServerConfig().getSyncCaves()) return original;
+        if (!session.getCtx().getSharedConfig().getSyncCaves()) return original;
 
         return original == 1 ? 2 : original;
     }

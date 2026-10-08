@@ -1,20 +1,22 @@
 package dev.alinco8.xmmp.client
 
-import dev.alinco8.xmmp.ChunkKey
-import dev.alinco8.xmmp.RegionKey
-import dev.alinco8.xmmp.TickDispatcher
+import dev.alinco8.xmmp.core.ChunkKey
+import dev.alinco8.xmmp.core.RegionKey
+import dev.alinco8.xmmp.core.TickDispatcher
 import dev.alinco8.xmmp.XMMP.LOGGER
 import dev.alinco8.xmmp.client.network.ClientPacketSender
 import dev.alinco8.xmmp.client.sync.UploadFlow
 import dev.alinco8.xmmp.client.update.UpdateChecker
-import dev.alinco8.xmmp.SyncLayer
+import dev.alinco8.xmmp.core.SyncLayer
 import dev.alinco8.xmmp.client.xaero.TileSnapshot
-import dev.alinco8.xmmp.config.ServerConfig
 import dev.alinco8.xmmp.config.XMMPConfig
-import dev.alinco8.xmmp.network.TokenBucket
-import dev.alinco8.xmmp.network.packet.C2SDimensionSync
-import dev.alinco8.xmmp.network.packet.C2SDownloadAck
-import dev.alinco8.xmmp.network.packet.C2SHandshake
+import dev.alinco8.xmmp.core.ResourceId
+import dev.alinco8.xmmp.core.config.ServerConfig
+import dev.alinco8.xmmp.core.network.TokenBucket
+import dev.alinco8.xmmp.core.network.packet.C2SDimensionSync
+import dev.alinco8.xmmp.core.network.packet.C2SDownloadAck
+import dev.alinco8.xmmp.core.network.packet.C2SHandshake
+import dev.alinco8.xmmp.id
 import dev.alinco8.xmmp.utils.ModList
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.time.Duration.Companion.minutes
@@ -39,7 +41,12 @@ data class MapKey(
     val usingWorldSave: Boolean,
 )
 
-class ClientSession(val serverConfig: ServerConfig) {
+class WorldContext(
+    val sharedConfig: ServerConfig.SharedConfig,
+    val packetSender: ClientPacketSender,
+)
+
+class ClientSession(val ctx: WorldContext) {
     val isWorldMapLoaded = ModList.isModLoaded("xaeroworldmap")
 
     private val dispatcher = TickDispatcher()
@@ -49,10 +56,10 @@ class ClientSession(val serverConfig: ServerConfig) {
     private val downloadCompleted = AtomicInteger()
 
     private val regionRequestLimiter = TokenBucket(
-        serverConfig.regionRequestBurst,
-        serverConfig.regionRequestRateLimit * 0.9,
+        ctx.sharedConfig.regionRequestBurst,
+        ctx.sharedConfig.regionRequestRateLimit * 0.9,
     )
-    private val uploadFlow = UploadFlow(serverConfig)
+    private val uploadFlow = UploadFlow(ctx.sharedConfig)
 
     private var lastMapKey: MapKey? = null
     private var lastLevel: ClientLevel? = null
@@ -75,7 +82,7 @@ class ClientSession(val serverConfig: ServerConfig) {
 
     fun onTickPost() {
         if (isWorldMapLoaded) Minecraft.getInstance().level?.let { level ->
-            val key = currentMapKey(level.dimension()) ?: return@let
+            val key = currentMapKey(level.dimension().id()) ?: return@let
 
             val keyChanged = key != lastMapKey
             if (!keyChanged && level === lastLevel) return@let
@@ -90,17 +97,17 @@ class ClientSession(val serverConfig: ServerConfig) {
         syncSession?.onTickPost()
 
         val completed = downloadCompleted.getAndSet(0)
-        if (completed > 0) ClientPacketSender.sendToServer(C2SDownloadAck(completed))
+        if (completed > 0) ctx.packetSender.send(C2SDownloadAck(completed))
 
     }
 
-    private fun currentMapKey(dimension: ResourceKey<Level>): MapKey? {
+    private fun currentMapKey(dimension: ResourceId): MapKey? {
         val processor = XaeroWorldMapCore.currentSession?.mapProcessor ?: return null
         if (!processor.isMapWorldUsable || processor.isWaitingForWorldUpdate || !processor.isCurrentMultiworldWritable)
             return null
 
         val mapDim = processor.mapWorld.currentDimensionId ?: return null
-        if (mapDim != dimension) return null
+        if (mapDim.id() != dimension) return null
 
         val mainId = processor.currentWorldId ?: return null
         if (processor.currentDimId != processor.getDimensionName(mapDim)) return null
@@ -114,14 +121,14 @@ class ClientSession(val serverConfig: ServerConfig) {
     }
 
     fun onTileWritten(
-        dimension: ResourceKey<Level>,
+        dimension: ResourceId,
         layer: Int,
         x: Int,
         z: Int,
         snap: TileSnapshot,
     ) =
         syncSession?.let {
-            if (it.dimension != dimension) {
+            if (it.dimension.id() != dimension) {
                 LOGGER.debug(
                     "Received tile written for dimension {}, but current dimension is {}. Ignoring.",
                     dimension,
@@ -133,11 +140,11 @@ class ClientSession(val serverConfig: ServerConfig) {
         }
 
     fun onRegionIndex(
-        dimension: ResourceKey<Level>,
+        dimension: ResourceId,
         layer: SyncLayer,
         regionRevisions: Map<RegionKey, Long>,
     ) {
-        if (dimension != syncSession?.dimension) {
+        if (dimension != syncSession?.dimension?.id()) {
             LOGGER.warn(
                 "Received region revisions for dimension {}, but current dimension is {}. Ignoring.",
                 dimension,
@@ -150,14 +157,14 @@ class ClientSession(val serverConfig: ServerConfig) {
     }
 
     fun onChunkData(
-        dimension: ResourceKey<Level>,
+        dimension: ResourceId,
         layer: SyncLayer,
         chunkPos: ChunkKey,
         revision: Long,
         payload: ByteArray,
     ) {
         val s = syncSession
-        if (s == null || dimension != s.dimension) {
+        if (s == null || dimension != s.dimension.id()) {
             downloadCompleted.incrementAndGet()
             return
         }
@@ -178,8 +185,10 @@ class ClientSession(val serverConfig: ServerConfig) {
         s?.close()
 
         syncSession = MapSyncSession(
-            key,
-            serverConfig,
+            MapSyncContext(
+                key,
+                ctx,
+            ),
             regionRequestLimiter,
             uploadFlow,
             scope,
@@ -191,7 +200,7 @@ class ClientSession(val serverConfig: ServerConfig) {
     fun onUploadAck(lastSeq: Long) = uploadFlow.onAck(lastSeq)
 
     fun onHandshake() {
-        ClientPacketSender.sendToServer(
+        ctx.packetSender.send(
             C2SHandshake(
                 isWorldMapLoaded,
                 XMMPConfig.HANDLER.instance().downloadWindow
@@ -209,13 +218,13 @@ class ClientSession(val serverConfig: ServerConfig) {
     }
 
     fun onRegionSyncDone(
-        dimension: ResourceKey<Level>,
+        dimension: ResourceId,
         layer: SyncLayer,
         regionPos: RegionKey,
         revision: Long,
         syncId: Int,
     ) {
-        if (dimension != syncSession?.dimension) return
+        if (dimension != syncSession?.dimension?.id()) return
 
         syncSession?.onRegionSyncDone(layer, regionPos, revision, syncId)
     }
@@ -223,6 +232,6 @@ class ClientSession(val serverConfig: ServerConfig) {
     private fun sendDimensionSync(session: MapSyncSession) {
         val id = ++lastSyncId
         session.syncId = id
-        ClientPacketSender.sendToServer(C2SDimensionSync(session.dimension, id))
+        ctx.packetSender.send(C2SDimensionSync(session.dimension.id(), id))
     }
 }

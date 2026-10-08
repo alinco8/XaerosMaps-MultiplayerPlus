@@ -14,6 +14,4 @@ interface ServerEvents {
     fun registerPlayerJoin(callback: (player: ServerPlayer) -> Unit)
     fun registerPlayerLeave(callback: (player: ServerPlayer) -> Unit)
     fun registerPlayerChangedDimension(callback: (player: ServerPlayer) -> Unit)
-
-    fun registerCommands(callback: (dispatcher: CommandDispatcher<CommandSourceStack>) -> Unit)
 }

@@ -1,9 +1,9 @@
 package dev.alinco8.xmmp.client.xaero
 
-import dev.alinco8.xmmp.ChunkKey
-import dev.alinco8.xmmp.SyncLayer
-import dev.alinco8.xmmp.XAERO_TILE_CHUNK_SIZE
-import dev.alinco8.xmmp.XAERO_TILE_SIZE
+import dev.alinco8.xmmp.core.ChunkKey
+import dev.alinco8.xmmp.core.SyncLayer
+import dev.alinco8.xmmp.core.XAERO_TILE_CHUNK_SIZE
+import dev.alinco8.xmmp.core.XAERO_TILE_SIZE
 import dev.alinco8.xmmp.io.TilePayloadCodec
 import dev.alinco8.xmmp.mixin.compat.xaeroworldmap.MapPixelAccessor
 import kotlinx.coroutines.yield

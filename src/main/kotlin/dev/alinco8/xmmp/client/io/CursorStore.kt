@@ -1,6 +1,6 @@
 package dev.alinco8.xmmp.client.io
 
-import dev.alinco8.xmmp.RegionKey
+import dev.alinco8.xmmp.core.RegionKey
 import dev.alinco8.xmmp.XMMP.LOGGER
 import java.nio.ByteBuffer
 import java.nio.file.Path

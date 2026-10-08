@@ -1,7 +1,11 @@
 @file:Suppress("UnstableApiUsage")
 
 rootProject.name = "Xaeros Maps Multiplayer"
+
 includeBuild("build-logic")
+includeBuild("core")
+
+include(":standalone", ":plugin")
 
 pluginManagement {
     repositories {
@@ -12,6 +16,10 @@ pluginManagement {
         maven("https://maven.kikugie.dev/snapshots") // Fletching Table
         gradlePluginPortal()
         mavenCentral()
+    }
+
+    plugins {
+        id("com.gradleup.shadow") version "9.3.1"
     }
 }
 

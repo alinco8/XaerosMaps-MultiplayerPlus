@@ -1,16 +1,19 @@
 package dev.alinco8.xmmp.client.sync
 
-import dev.alinco8.xmmp.RegionKey
+import dev.alinco8.xmmp.client.MapSyncContext
+import dev.alinco8.xmmp.client.XMMPClient
+import dev.alinco8.xmmp.core.RegionKey
 import dev.alinco8.xmmp.client.io.CursorStore
-import dev.alinco8.xmmp.client.network.ClientPacketSender
-import dev.alinco8.xmmp.SyncLayer
-import dev.alinco8.xmmp.network.TokenBucket
-import dev.alinco8.xmmp.network.packet.C2SRegionSync
-import net.minecraft.resources.ResourceKey
-import net.minecraft.world.level.Level
+import dev.alinco8.xmmp.client.network.minecraft.MinecraftPacketSender
+import dev.alinco8.xmmp.core.ResourceId
+import dev.alinco8.xmmp.core.SyncLayer
+import dev.alinco8.xmmp.core.network.TokenBucket
+import dev.alinco8.xmmp.core.network.packet.C2SRegionSync
+
 
 class ChunkDownloader(
-    val dimension: ResourceKey<Level>,
+    val ctx: MapSyncContext,
+    val dimension: ResourceId,
     private val limiter: TokenBucket,
 ) {
     suspend fun onRegionIndex(
@@ -30,7 +33,14 @@ class ChunkDownloader(
             limiter.waitForTokens(1.0)
 
             onRequest(pos)
-            ClientPacketSender.sendToServer(C2SRegionSync(dimension, layer, pos, cursor))
+            ctx.world.packetSender.send(
+                C2SRegionSync(
+                    dimension,
+                    layer,
+                    pos,
+                    cursor
+                )
+            )
         }
     }
 }

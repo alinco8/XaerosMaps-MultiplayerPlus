@@ -4,6 +4,9 @@ import buildlogic.ifProp
 import buildlogic.prop
 import buildlogic.propOrNull
 import buildlogic.strictMaven
+import org.gradle.plugins.ide.idea.model.IdeaModel
+import org.jetbrains.gradle.ext.ProjectSettings
+import org.jetbrains.gradle.ext.RunConfigurationContainer
 import org.slf4j.event.Level
 
 plugins {
@@ -74,10 +77,14 @@ configurations {
 dependencies {
     implementation("thedarkcolour:kotlinforforge-neoforge:${prop("deps.kff.version")}")
 
+    jarJar(implementation("dev.alinco8.xmmp:core")!!)
+
     jarJar(implementation("com.github.luben:zstd-jni:${prop("libs.zstd")}")!!)
     if (stonecutter.eval(minecraft, "<=1.21.8")) {
         add("additionalRuntimeClasspath", "com.github.luben:zstd-jni:${prop("libs.zstd")}")
     }
+
+    jarJar(runtimeOnly("com.akuleshov7:ktoml-core-jvm:0.7.1")!!)
 
     compileOnly("com.electronwill.night-config:toml:${prop("libs.night_config")}")
 
@@ -91,9 +98,11 @@ dependencies {
         "mcwifipnp"
     ).forEach {
         try {
-            localRuntime(fletchingTable.modrinth(it, minecraft, loader))
-        } catch (_: NoSuchElementException) {
-            println("Mod '$it' not found in modrinth dependencies, skipping...")
+            localRuntime(
+                fletchingTable.modrinth(it, minecraft, loader)
+            )
+        } catch (_: Exception) {
+            println("Failed to resolve mod '$it' from modrinth dependencies, skipping...")
         }
     }
 }

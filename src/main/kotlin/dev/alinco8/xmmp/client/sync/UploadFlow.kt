@@ -1,10 +1,10 @@
 package dev.alinco8.xmmp.client.sync
 
-import dev.alinco8.xmmp.config.ServerConfig
-import dev.alinco8.xmmp.network.CreditWindow
-import dev.alinco8.xmmp.network.TokenBucket
+import dev.alinco8.xmmp.core.config.ServerConfig
+import dev.alinco8.xmmp.core.network.CreditWindow
+import dev.alinco8.xmmp.core.network.TokenBucket
 
-class UploadFlow(serverConfig: ServerConfig) {
+class UploadFlow(serverConfig: ServerConfig.SharedConfig) {
     private class Entry(val seq: Long, val onAcked: () -> Unit)
 
     private val credits = CreditWindow(serverConfig.uploadWindow)

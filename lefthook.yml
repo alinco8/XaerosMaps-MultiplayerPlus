@@ -5,7 +5,6 @@ pre-push:
   parallel: false
   jobs:
     - run: ./gradlew build
-    - run: ./gradlew publishMods --dry-run
 pre-commit:
   jobs:
     - run: |

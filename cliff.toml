@@ -24,6 +24,7 @@ trim = true
 render_always = false
 
 [git]
+tag_pattern = '^v[0-9]+\.[0-9]+\.[0-9]+$'
 conventional_commits = true
 filter_unconventional = true
 require_conventional = false

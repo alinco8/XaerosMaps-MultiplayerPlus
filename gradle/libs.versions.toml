@@ -1,0 +1,30 @@
+[versions]
+kotlin = "2.4.20"
+kotlinx-coroutines = "1.10.2"
+ksp = "2.3.12"
+mod-publish = "2.2.1"
+fletching-table = "0.1.0-alpha.23"
+stonecutter = "0.9.8"
+zstd-jni = "1.5.7-14"
+fastutil = "8.5.19"
+netty = "4.2.18.Final"
+slf4j = "2.0.19"
+ktoml = "0.7.1"
+
+[libraries]
+kotlin-gradle-plugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
+kotlin-serialization-gradle-plugin = { module = "org.jetbrains.kotlin:kotlin-serialization", version.ref = "kotlin" }
+kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinx-coroutines" }
+ksp-gradle-plugin = { module = "com.google.devtools.ksp:symbol-processing-gradle-plugin", version.ref = "ksp" }
+mod-publish-gradle-plugin = { module = "me.modmuss50:mod-publish-plugin", version.ref = "mod-publish" }
+fletching-table = { module = "dev.kikugie:fletching-table", version.ref = "fletching-table" }
+stonecutter = { module = "dev.kikugie:stonecutter", version.ref = "stonecutter" }
+ktoml-core = { module = "com.akuleshov7:ktoml-core", version.ref = "ktoml" }
+netty-buffer = { module = "io.netty:netty-buffer", version.ref = "netty" }
+fastutil = { module = "it.unimi.dsi:fastutil", version.ref = "fastutil" }
+slf4j-api = { module = "org.slf4j:slf4j-api", version.ref = "slf4j" }
+zstd-jni = { module = "com.github.luben:zstd-jni", version.ref = "zstd-jni" }
+
+[plugins]
+kotlin = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }

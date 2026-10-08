@@ -1,14 +1,16 @@
 package dev.alinco8.xmmp.client.sync
 
-import dev.alinco8.xmmp.ChunkKey
-import dev.alinco8.xmmp.client.network.ClientPacketSender
-import dev.alinco8.xmmp.SyncLayer
-import dev.alinco8.xmmp.network.packet.C2SChunkUpload
-import net.minecraft.resources.ResourceKey
-import net.minecraft.world.level.Level
+import dev.alinco8.xmmp.client.MapSyncContext
+import dev.alinco8.xmmp.client.XMMPClient
+import dev.alinco8.xmmp.core.ChunkKey
+import dev.alinco8.xmmp.client.network.minecraft.MinecraftPacketSender
+import dev.alinco8.xmmp.core.ResourceId
+import dev.alinco8.xmmp.core.SyncLayer
+import dev.alinco8.xmmp.core.network.packet.C2SChunkUpload
 
 class ChunkUploader(
-    val dimension: ResourceKey<Level>,
+    private val ctx: MapSyncContext,
+    val dimension: ResourceId,
     val layer: SyncLayer,
     private val flow: UploadFlow,
 ) {
@@ -65,7 +67,7 @@ class ChunkUploader(
             flow.limiter.waitForTokens(1.0)
 
             val (seq, key, payload) = takeNext() ?: break
-            ClientPacketSender.sendToServer(
+            ctx.world.packetSender.send(
                 C2SChunkUpload(dimension, layer, key, seq, payload)
             )
         }

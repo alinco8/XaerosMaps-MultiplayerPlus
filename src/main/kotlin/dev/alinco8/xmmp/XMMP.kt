@@ -8,20 +8,8 @@ import net.minecraft.resources.ResourceLocation as Identifier
 
 //? }
 
-import dev.alinco8.xmmp.client.network.ClientPacketHandlers
-import dev.alinco8.xmmp.common.CommonEvents
 import dev.alinco8.xmmp.config.XMMPConfig
-import dev.alinco8.xmmp.network.packet.C2SChunkUpload
-import dev.alinco8.xmmp.network.packet.C2SDimensionSync
-import dev.alinco8.xmmp.network.packet.C2SDownloadAck
-import dev.alinco8.xmmp.network.packet.S2CChunkData
-import dev.alinco8.xmmp.network.packet.C2SHandshake
-import dev.alinco8.xmmp.network.packet.C2SRegionSync
-import dev.alinco8.xmmp.network.packet.S2CHandshake
-import dev.alinco8.xmmp.network.packet.S2CRegionIndex
-import dev.alinco8.xmmp.network.packet.S2CRegionSyncDone
-import dev.alinco8.xmmp.network.packet.S2CUploadAck
-import dev.alinco8.xmmp.server.network.ServerPacketHandlers
+import dev.alinco8.xmmp.core.ResourceId
 import net.minecraft.resources.ResourceKey
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -41,45 +29,29 @@ object XMMP {
         *///? }
     }
 
-    fun onInitialize(events: CommonEvents) {
+    fun onInitialize() {
         LOGGER.debug("Initializing XMMP")
 
         XMMPConfig.HANDLER.load()
-
-        with(events) {
-            registerPackets(PACKET_VERSION, ::onRegisterPackets)
-        }
-    }
-
-    fun onRegisterPackets(registry: CommonEvents.PacketRegistry) = with(registry) {
-        registerToServer(C2SChunkUpload, ServerPacketHandlers::handleChunkUpload)
-        registerToServer(C2SDimensionSync, ServerPacketHandlers::handleDimensionSync)
-        registerToServer(C2SDownloadAck, ServerPacketHandlers::handleDownloadAck)
-        registerToServer(C2SHandshake, ServerPacketHandlers::handleHandshake)
-        registerToServer(C2SRegionSync, ServerPacketHandlers::handleRegionSync)
-
-        registerToClient(S2CChunkData) {
-            ClientPacketHandlers.handleChunkData(it)
-        }
-        registerToClient(S2CHandshake) {
-            ClientPacketHandlers.handleHandshake(it)
-        }
-        registerToClient(S2CRegionIndex) {
-            ClientPacketHandlers.handleRegionIndex(it)
-        }
-        registerToClient(S2CRegionSyncDone) {
-            ClientPacketHandlers.handleRegionSyncDone(it)
-        }
-        registerToClient(S2CUploadAck) {
-            ClientPacketHandlers.handleUploadAck(it)
-        }
     }
 }
 
-internal fun ResourceKey<*>.id(): Identifier {
+fun ResourceId.toIdentifier(): Identifier {
+    //? if >=1.21 {
+    return Identifier.fromNamespaceAndPath(this.namespace, this.path)
+    //? } else {
+    /*return Identifier(this.namespace, this.path)
+    *///? }
+}
+
+fun Identifier.toResourceId(): ResourceId {
+    return ResourceId(this.namespace, this.path)
+}
+
+fun ResourceKey<*>.id(): ResourceId {
     //? if >=1.21.11 {
-    /*return this.identifier()
+    /*return this.identifier().toResourceId()
     *///? } else {
-    return this.location()
+    return this.location().toResourceId()
     //? }
 }

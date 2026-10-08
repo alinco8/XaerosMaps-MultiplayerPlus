@@ -1,8 +1,10 @@
 package dev.alinco8.xmmp.server.network
 
-import dev.alinco8.xmmp.network.XMMPPacket
-import net.minecraft.server.level.ServerLevel
-import net.minecraft.server.level.ServerPlayer
+//? if >=1.21.11 {
+/*import net.minecraft.resources.Identifier
+*///? } else {
+import net.minecraft.resources.ResourceLocation as Identifier
+//? }
 
 //? if fabric {
 /*import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking
@@ -16,38 +18,51 @@ import net.minecraftforge.network.PacketDistributor
 
 *///? }
 
+import dev.alinco8.xmmp.core.network.XMMPPacket
+import dev.alinco8.xmmp.core.network.writeId
+import dev.alinco8.xmmp.network.FramePacket
+import io.netty.buffer.ByteBufUtil
+import io.netty.buffer.Unpooled
+import net.minecraft.server.level.ServerPlayer
+
 object ServerPacketSender {
     fun <T : XMMPPacket<T>> sendToPlayer(
         player: ServerPlayer,
         packet: T,
     ): Boolean {
         //? if fabric {
-        /*if (!ServerPlayNetworking.canSend(player, packet.type.payloadType)) return false
-        ServerPlayNetworking.send(player, packet)
+        /*if (!ServerPlayNetworking.canSend(player, FramePacket.payloadType)) return false
+
+        val buf = Unpooled.buffer()
+        buf.writeId(packet.type.id)
+        packet.type.codec.encode(buf, packet)
+
+        ServerPlayNetworking.send(player, FramePacket(ByteBufUtil.getBytes(buf)))
 
         *///? } else if neoforge {
-        if (!player.connection.hasChannel(packet)) return false
-        PacketDistributor.sendToPlayer(player, packet)
+        if (!player.connection.hasChannel(FramePacket.payloadType)) return false
+
+        val buf = Unpooled.buffer()
+        buf.writeId(packet.type.id)
+        packet.type.codec.encode(buf, packet)
+
+        PacketDistributor.sendToPlayer(player, FramePacket(ByteBufUtil.getBytes(buf)))
 
         //? } else if forge {
-        /*ForgeEntrypoint.CHANNEL.send(PacketDistributor.PLAYER.with({ player }), packet)
+        /*if (!ForgeEntrypoint.CHANNEL.isRemotePresent(player.connection.connection)) return false
+
+        val buf = Unpooled.buffer()
+        buf.writeId(packet.type.id)
+        packet.type.codec.encode(buf, packet)
+
+        ForgeEntrypoint.CHANNEL.send(
+            PacketDistributor.PLAYER.with { player }, FramePacket(
+                ByteBufUtil.getBytes(buf)
+            )
+        )
 
         *///? }
 
         return true
-    }
-
-    fun <T : XMMPPacket<T>> sendToPlayersInDimension(
-        level: ServerLevel,
-        packet: T,
-        filter: (ServerPlayer) -> Boolean = { true },
-    ): Int {
-        var i = 0
-
-        level.players().forEach {
-            if (filter(it) && sendToPlayer(it, packet)) i++
-        }
-
-        return i
     }
 }

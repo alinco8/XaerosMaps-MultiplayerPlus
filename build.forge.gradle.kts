@@ -4,6 +4,9 @@ import buildlogic.ifProp
 import buildlogic.prop
 import buildlogic.propOrNull
 import buildlogic.strictMaven
+import org.gradle.plugins.ide.idea.model.IdeaModel
+import org.jetbrains.gradle.ext.ProjectSettings
+import org.jetbrains.gradle.ext.RunConfigurationContainer
 import org.slf4j.event.Level
 
 plugins {
@@ -71,8 +74,12 @@ dependencies {
     implementation("thedarkcolour:kfflib:${prop("deps.kff.version")}")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.11.0")
 
+    jarJar(implementation("dev.alinco8.xmmp:core")!!)
+
     jarJar(implementation("com.github.luben:zstd-jni:${prop("libs.zstd")}")!!)
     add("additionalRuntimeClasspath", "com.github.luben:zstd-jni:${prop("libs.zstd")}")
+
+    jarJar(runtimeOnly("com.akuleshov7:ktoml-core-jvm:0.7.1")!!)
 
     compileOnly("com.electronwill.night-config:toml:${prop("libs.night_config")}")
 
@@ -93,9 +100,11 @@ dependencies {
         "mcwifipnp"
     ).forEach {
         try {
-            modRuntimeOnly(fletchingTable.modrinth(it))
-        } catch (_: NoSuchElementException) {
-            println("Mod '$it' not found in modrinth dependencies, skipping...")
+            modRuntimeOnly(
+                fletchingTable.modrinth(it)
+            )
+        } catch (_: Exception) {
+            println("Failed to resolve mod '$it' from modrinth dependencies, skipping...")
         }
     }
 }
