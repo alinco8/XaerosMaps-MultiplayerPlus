@@ -1,0 +1,10 @@
+name: Compatibility Check
+on:
+  schedule:
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+jobs:
+  compat-check:
+    runs-on: ubuntu-latest
+    steps:
+      
