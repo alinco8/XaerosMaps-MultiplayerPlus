@@ -68,6 +68,7 @@ jobs:
           DRY_RUN: "true"
           PROJECT: ${{ matrix.project }}
           MODRINTH_TOKEN: DUMMY
+          CURSEFORGE_TOKEN: DUMMY
         run: |
           set -eo pipefail
           ./gradlew ":${PROJECT}:publishMods" --refresh-dependencies | tee publish.log
