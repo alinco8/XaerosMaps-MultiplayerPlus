@@ -111,6 +111,7 @@ jobs:
         if: steps.deps.outputs.skip != 'true'
         uses: headlesshq/mc-runtime-test@4.5.2
         with:
+          regex: .*${{ matrix.loader }}.*
           mc: ${{ matrix.mc }}
           modloader: ${{ matrix.loader }}
           mc-runtime-test: ${{ matrix.rt }}
