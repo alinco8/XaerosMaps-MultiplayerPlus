@@ -1,10 +1,131 @@
-name: Compatibility Check
+name: Nightly launch check
+
 on:
   schedule:
-    - cron: '0 0 * * *'
+    - cron: "17 18 * * *"
   workflow_dispatch:
+
+permissions:
+  contents: read
+
 jobs:
-  compat-check:
+  matrix:
     runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.gen.outputs.matrix }}
     steps:
-      
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+
+      - name: Generate matrix
+        id: gen
+        run: |
+          set -euo pipefail
+          matrix=$(jq -c '
+            def java($mc):
+              if ($mc | startswith("26.")) then 25
+              else ($mc | split(".") | map(tonumber? // 0)) as $v
+                | if $v[1] < 20 or ($v[1] == 20 and ($v[2] // 0) < 5) then 17 else 21 end
+              end;
+            { include: [
+              .versions[]
+              | split(":") as $p
+              | ($p[0] | split("-") | last) as $loader
+              | $p[1] as $mc
+              | {
+                  project: $p[0],
+                  mc: $mc,
+                  loader: $loader,
+                  rt: (if $loader == "forge" then "lexforge" else $loader end),
+                  java: java($mc)
+                }
+            ] }' versions.json)
+          echo "$matrix" | jq .
+          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+
+  launch:
+    name: ${{ matrix.project }}
+    needs: matrix
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      max-parallel: 5
+      matrix: ${{ fromJSON(needs.matrix.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6
+        with:
+          distribution: temurin
+          java-version: '25'
+
+      - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6
+        with:
+          cache-read-only: true
+
+      - name: Resolve jar and dependencies
+        env:
+          DRY_RUN: "true"
+          PROJECT: ${{ matrix.project }}
+        run: |
+          set -eo pipefail
+          ./gradlew ":${PROJECT}:publishMods" --refresh-dependencies | tee publish.log
+          main=$(sed -n 's/^Main file: //p' publish.log | head -n1)
+          test -n "$main" || { echo "::error::'Main file:' not found in publishMods output"; exit 1; }
+          jar=$(find . -name "$main" -path '*/build/libs/*' | head -n1)
+          test -n "$jar" || { echo "::error::$main not found under build/libs"; exit 1; }
+          echo "$jar" > mod-jar.txt
+          sed -n 's/.*Dependency(id\/slug: \([^,]*\),.*/\1/p' publish.log | sort -u > deps.txt
+          echo "mod: $jar"
+          echo "deps:"; cat deps.txt
+
+      - name: Download dependencies
+        id: deps
+        env:
+          MC: ${{ matrix.mc }}
+          LOADER: ${{ matrix.loader }}
+        run: |
+          set -uo pipefail
+          mkdir -p run/mods
+          cp "$(cat mod-jar.txt)" run/mods/
+          while read -r slug; do
+            res=$(curl -sfG "https://api.modrinth.com/v2/project/$slug/version" \
+              -H "User-Agent: ${GITHUB_REPOSITORY}/nightly-launch-check" \
+              --data-urlencode "game_versions=[\"${MC}\"]" \
+              --data-urlencode "loaders=[\"${LOADER}\"]") \
+              || { echo "::error::Modrinth request failed for $slug"; exit 1; }
+            url=$(echo "$res" | jq -r '(.[0].files // []) | (map(select(.primary)) + .)[0].url // empty')
+            if [ -z "$url" ]; then
+              echo "::warning::$slug has no release for $MC/$LOADER, skipping this combination"
+              echo "skip=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            echo "$slug -> $(echo "$res" | jq -r '.[0].version_number')"
+            curl -sfL -o "run/mods/$(basename "$url")" "$url" || { echo "::error::download failed: $url"; exit 1; }
+          done < deps.txt
+          ls -l run/mods
+
+      - name: Run MC test client
+        if: steps.deps.outputs.skip != 'true'
+        uses: headlesshq/mc-runtime-test@4.5.2
+        with:
+          mc: ${{ matrix.mc }}
+          modloader: ${{ matrix.loader }}
+          mc-runtime-test: ${{ matrix.rt }}
+          java: ${{ matrix.java }}
+          xvfb: true
+          dummy-assets: true
+          cache-mc: false
+          fabric-api: none
+
+      - name: Upload logs
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: launch-logs-${{ matrix.project }}
+          path: |
+            run/logs
+            run/crash-reports
+            publish.log
+            **/hs_err_pid*.log
+          if-no-files-found: ignore

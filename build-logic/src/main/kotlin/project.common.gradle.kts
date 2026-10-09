@@ -139,6 +139,8 @@ tasks {
 }
 
 publishMods {
+    dryRun = propOrNull("DRY_RUN")?.toBoolean() ?: false
+
     type = STABLE
     version = project.version.toString()
     changelog = propOrNull("RELEASE_NOTES") ?: "No release notes provided."
