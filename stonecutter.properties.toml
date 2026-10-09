@@ -1,6 +1,6 @@
 [mod]
 id = "xmmp"
-version = "1.1.1"
+version = "1.1.2"
 license = "MIT"
 name = "Xaero's Maps: Multiplayer+"
 description = "Adds more multiplayer features to Xaero's Minimap/World Map"
