@@ -109,7 +109,7 @@ jobs:
 
       - name: Run MC test client
         if: steps.deps.outputs.skip != 'true'
-        uses: headlesshq/mc-runtime-test@4.5.2
+        uses: headlesshq/mc-runtime-test@645691de43520240e1d1e45b4b9a4d9cd9c294a4 # 4.5.2
         with:
           regex: .*${{ matrix.loader }}.*
           mc: ${{ matrix.mc }}
