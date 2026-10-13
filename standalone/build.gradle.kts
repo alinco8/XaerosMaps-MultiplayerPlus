@@ -30,7 +30,7 @@ dependencies {
     implementation("io.netty:netty-all:4.2.18.Final")
     implementation("it.unimi.dsi:fastutil:8.5.19")
     implementation("org.slf4j:slf4j-api:2.0.19")
-    implementation("com.github.luben:zstd-jni:1.5.7-9")
+    implementation("com.github.luben:zstd-jni:1.5.7-23")
     implementation("com.akuleshov7:ktoml-core:0.7.1")
 
     runtimeOnly("org.slf4j:slf4j-simple:2.0.19")
