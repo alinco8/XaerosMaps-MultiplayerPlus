@@ -19,7 +19,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
-      - uses: cargo-bins/cargo-binstall@44dada98ea7ce44dd11aa224db6c5b1add1cf21e # main
+      - uses: cargo-bins/cargo-binstall@0c2d7a00afc5de6d5d2d5fc44922d2f6f993dda2 # main
       - run: cargo-binstall --no-confirm git-cliff
       - id: check-version
         #language=bash
