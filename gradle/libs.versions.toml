@@ -2,7 +2,7 @@
 kotlin = "2.4.21"
 kotlinx-coroutines = "1.10.2"
 ksp = "2.3.12"
-kotlinx-datetime = "0.7.1-0.6.x-compat"
+kotlinx-datetime = "0.8.0-0.6.x-compat"
 mod-publish = "2.2.1"
 fletching-table = "0.1.0-alpha.23"
 stonecutter = "0.9.8"
