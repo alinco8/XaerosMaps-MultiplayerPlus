@@ -183,6 +183,8 @@ jobs:
             args+=(--prerelease --target "$GITHUB_SHA")
           fi
           
+          rm -f build/libs/*-sources.jar
+          
           echo "Creating GitHub release v$VERSION with:"
           echo "  prerelease: $PRERELEASE"
           echo "  items: build/libs/*, build/tools/plugin/build/libs/*.jar, build/tools/standalone/build/libs/*.jar"
