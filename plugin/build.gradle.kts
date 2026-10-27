@@ -27,6 +27,7 @@ kotlin {
 }
 
 dependencies {
+    compileOnly(kotlin("stdlib"))
     compileOnly("io.papermc.paper:paper-api:${prop("plugin.deps.paper_api")}")
 
     implementation("dev.alinco8.xmmp:core")
@@ -38,9 +39,16 @@ tasks {
         enabled = false
     }
 
+    shadowJar {
+        dependencies {
+            exclude(dependency("org.jetbrains.kotlin:.*:.*"))
+        }
+    }
+
     processResources {
         val props = mapOf(
             "version" to project.version.toString(),
+            "kotlinVersion" to libs.versions.kotlin.get()
         )
         inputs.property("props", props)
         filesMatching("plugin.yml") {

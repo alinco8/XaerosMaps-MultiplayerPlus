@@ -4,5 +4,6 @@ version: ${version}
 api-version: 1.20
 libraries:
   - org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm:1.10.2
+  - org.jetbrains.kotlin:kotlin-stdlib:${kotlinVersion}
   - com.akuleshov7:ktoml-core-jvm:0.7.1
   - com.github.luben:zstd-jni:1.5.7-14
